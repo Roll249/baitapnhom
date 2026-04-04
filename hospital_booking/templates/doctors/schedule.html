@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Lịch làm việc - Bác sĩ{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Quản lý lịch làm việc</h2>
+    
+    <div class="row">
+        <!-- Add schedule form -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Thêm lịch mới</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Ngày trong tuần</label>
+                            {{ form.weekday }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Giờ bắt đầu</label>
+                            {{ form.start_time }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Giờ kết thúc</label>
+                            {{ form.end_time }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Số bệnh nhân tối đa</label>
+                            {{ form.max_patients }}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label">Kích hoạt</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus"></i> Thêm
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Schedule list -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Lịch làm việc hiện tại</h5>
+                </div>
+                <div class="card-body">
+                    {% if schedules %}
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Ngày</th>
+                                    <th>Giờ làm việc</th>
+                                    <th>Số BN tối đa</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule in schedules %}
+                                    <tr>
+                                        <td>{{ schedule.get_weekday_display }}</td>
+                                        <td>{{ schedule.start_time }} - {{ schedule.end_time }}</td>
+                                        <td>{{ schedule.max_patients }}</td>
+                                        <td>
+                                            {% if schedule.is_active %}
+                                                <span class="badge bg-success">Hoạt động</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Tạm dừng</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'delete_schedule' schedule.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn xóa?')">
+                                                <i class="bi bi-trash"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p class="text-muted mb-0">Chưa có lịch làm việc nào.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

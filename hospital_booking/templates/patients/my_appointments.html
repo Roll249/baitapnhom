@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}Lịch khám của tôi{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Lịch khám của tôi</h2>
+    
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Trạng thái</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Chờ xác nhận</option>
+                        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Đã xác nhận</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Hoàn thành</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Lọc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Appointments list -->
+    <div class="card">
+        <div class="card-body">
+            {% if appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Bác sĩ</th>
+                                <th>Chuyên khoa</th>
+                                <th>Ngày</th>
+                                <th>Giờ</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for apt in appointments %}
+                                <tr>
+                                    <td>{{ apt.doctor }}</td>
+                                    <td>{{ apt.doctor.specialization.name|default:"-" }}</td>
+                                    <td>{{ apt.appointment_date }}</td>
+                                    <td>{{ apt.appointment_time }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if apt.status == 'pending' %}warning{% elif apt.status == 'confirmed' %}success{% elif apt.status == 'completed' %}info{% elif apt.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                            {{ apt.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if apt.status == 'pending' or apt.status == 'confirmed' %}
+                                            <a href="{% url 'cancel_appointment' apt.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn hủy lịch này?')">
+                                                <i class="bi bi-x-circle"></i> Hủy
+                                            </a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted text-center mb-0">Không có lịch khám nào.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="mt-4">
+        <a href="{% url 'book_appointment' %}" class="btn btn-primary">
+            <i class="bi bi-calendar-plus"></i> Đặt lịch khám mới
+        </a>
+    </div>
+</div>
+{% endblock %}

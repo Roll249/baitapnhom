@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Quản lý lịch khám{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Quản lý lịch khám</h2>
+    
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Trạng thái</label>
+                    <select name="status" class="form-select">
+                        <option value="">Tất cả</option>
+                        <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Chờ xác nhận</option>
+                        <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Đã xác nhận</option>
+                        <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Hoàn thành</option>
+                        <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Đã hủy</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Ngày</label>
+                    <input type="date" name="date" class="form-control" value="{{ date_filter }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Lọc</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Appointments list -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Bệnh nhân</th>
+                            <th>Bác sĩ</th>
+                            <th>Ngày</th>
+                            <th>Giờ</th>
+                            <th>Trạng thái</th>
+                            <th>Ngày tạo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for apt in appointments %}
+                            <tr>
+                                <td>{{ apt.id }}</td>
+                                <td>{{ apt.patient }}</td>
+                                <td>{{ apt.doctor }}</td>
+                                <td>{{ apt.appointment_date }}</td>
+                                <td>{{ apt.appointment_time }}</td>
+                                <td>
+                                    <span class="badge bg-{% if apt.status == 'pending' %}warning{% elif apt.status == 'confirmed' %}success{% elif apt.status == 'completed' %}info{% elif apt.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
+                                        {{ apt.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ apt.created_at|date:"d/m/Y H:i" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-muted text-center">Không có lịch khám nào.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

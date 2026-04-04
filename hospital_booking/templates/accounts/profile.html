@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Hồ sơ cá nhân{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-person"></i> Hồ sơ cá nhân</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <h5 class="mb-3">Thông tin tài khoản</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Họ</label>
+                                {{ user_form.first_name }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Tên</label>
+                                {{ user_form.last_name }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                {{ user_form.email }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Số điện thoại</label>
+                                {{ user_form.phone }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Địa chỉ</label>
+                            {{ user_form.address }}
+                        </div>
+                        
+                        {% if patient_form %}
+                            <hr>
+                            <h5 class="mb-3">Thông tin bệnh nhân</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày sinh</label>
+                                    {{ patient_form.date_of_birth }}
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giới tính</label>
+                                    {{ patient_form.gender }}
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Thông tin bảo hiểm</label>
+                                {{ patient_form.insurance_info }}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Tiền sử bệnh</label>
+                                {{ patient_form.medical_history }}
+                            </div>
+                        {% endif %}
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Cập nhật
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

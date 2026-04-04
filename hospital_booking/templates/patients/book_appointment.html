@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Đặt lịch khám{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Đặt lịch khám</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Chọn bác sĩ *</label>
+                            {{ form.doctor }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày khám *</label>
+                                {{ form.appointment_date }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Giờ khám *</label>
+                                {{ form.appointment_time }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Mô tả triệu chứng</label>
+                            {{ form.symptoms }}
+                            <small class="text-muted">Mô tả ngắn gọn triệu chứng để bác sĩ chuẩn bị tốt hơn.</small>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-check-lg"></i> Đặt lịch
+                        </button>
+                        <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary btn-lg">
+                            Hủy
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

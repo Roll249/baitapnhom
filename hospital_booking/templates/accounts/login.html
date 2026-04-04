@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Đăng nhập - Hệ thống đặt lịch khám bệnh{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center">
+                    <h4 class="mb-0"><i class="bi bi-box-arrow-in-right"></i> Đăng nhập</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">Tên đăng nhập</label>
+                            {{ form.username }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label">Mật khẩu</label>
+                            {{ form.password }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-box-arrow-in-right"></i> Đăng nhập
+                        </button>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    Chưa có tài khoản? <a href="{% url 'register' %}">Đăng ký ngay</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

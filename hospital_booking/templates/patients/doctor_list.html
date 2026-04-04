@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block title %}Danh sách bác sĩ{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Danh sách bác sĩ</h2>
+    
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">Chuyên khoa</label>
+                    <select name="specialization" class="form-select">
+                        <option value="">Tất cả chuyên khoa</option>
+                        {% for spec in specializations %}
+                            <option value="{{ spec.id }}" {% if selected_spec == spec.id|stringformat:"i" %}selected{% endif %}>
+                                {{ spec.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Lọc
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Doctor list -->
+    <div class="row g-4">
+        {% for doctor in doctors %}
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ doctor }}</h5>
+                        <p class="card-text text-muted">
+                            {% if doctor.specialization %}
+                                <i class="bi bi-heart-pulse"></i> {{ doctor.specialization.name }}<br>
+                            {% endif %}
+                            <i class="bi bi-briefcase"></i> {{ doctor.experience_years }} năm kinh nghiệm<br>
+                            <i class="bi bi-cash"></i> Phí khám: {{ doctor.consultation_fee|floatformat:0 }} VNĐ
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{% url 'doctor_detail' doctor.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-eye"></i> Xem chi tiết
+                        </a>
+                        <a href="{% url 'book_appointment_doctor' doctor.id %}" class="btn btn-primary btn-sm">
+                            <i class="bi bi-calendar-plus"></i> Đặt lịch
+                        </a>
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info">Không tìm thấy bác sĩ nào.</div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

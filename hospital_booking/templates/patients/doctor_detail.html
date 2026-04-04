@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ doctor }} - Chi tiết bác sĩ{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">{{ doctor }}</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-heart-pulse"></i> Chuyên khoa</h6>
+                            <p>{{ doctor.specialization.name|default:"Chưa cập nhật" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-award"></i> Học vị/Chức danh</h6>
+                            <p>{{ doctor.qualification|default:"Chưa cập nhật" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-briefcase"></i> Kinh nghiệm</h6>
+                            <p>{{ doctor.experience_years }} năm</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="bi bi-cash"></i> Phí khám</h6>
+                            <p>{{ doctor.consultation_fee|floatformat:0 }} VNĐ</p>
+                        </div>
+                    </div>
+                    
+                    {% if doctor.bio %}
+                        <div class="mb-4">
+                            <h6><i class="bi bi-info-circle"></i> Giới thiệu</h6>
+                            <p>{{ doctor.bio }}</p>
+                        </div>
+                    {% endif %}
+                    
+                    <a href="{% url 'book_appointment_doctor' doctor.id %}" class="btn btn-primary btn-lg">
+                        <i class="bi bi-calendar-plus"></i> Đặt lịch khám
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Lịch làm việc</h5>
+                </div>
+                <div class="card-body">
+                    {% if schedules %}
+                        <ul class="list-group list-group-flush">
+                            {% for schedule in schedules %}
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>{{ schedule.get_weekday_display }}</span>
+                                    <span class="text-muted">{{ schedule.start_time }} - {{ schedule.end_time }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted mb-0">Chưa có lịch làm việc.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}Hồ sơ bác sĩ{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-person"></i> Hồ sơ bác sĩ</h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Chuyên khoa</label>
+                            {{ form.specialization }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Học vị/Chức danh</label>
+                            {{ form.qualification }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Số năm kinh nghiệm</label>
+                                {{ form.experience_years }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Phí khám (VNĐ)</label>
+                                {{ form.consultation_fee }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Trạng thái</label>
+                            {{ form.status }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Giới thiệu bản thân</label>
+                            {{ form.bio }}
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Cập nhật
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

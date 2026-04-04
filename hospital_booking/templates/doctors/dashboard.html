@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Bác sĩ{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 sidebar py-3">
+            <div class="position-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'doctor_dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'doctor_appointments' %}">
+                            <i class="bi bi-calendar-check"></i> Lịch khám
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'doctor_schedule' %}">
+                            <i class="bi bi-clock"></i> Lịch làm việc
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'doctor_statistics' %}">
+                            <i class="bi bi-bar-chart"></i> Thống kê
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'doctor_profile' %}">
+                            <i class="bi bi-person"></i> Hồ sơ
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            <h2 class="mb-4">Xin chào, {{ doctor }}!</h2>
+            
+            <!-- Statistics -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted">Tổng bệnh nhân</h6>
+                            <h2 class="mb-0">{{ total_patients }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted">Chờ duyệt</h6>
+                            <h2 class="mb-0 text-warning">{{ pending_count }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card stat-card h-100">
+                        <div class="card-body">
+                            <h6 class="text-muted">Đã hoàn thành</h6>
+                            <h2 class="mb-0 text-success">{{ completed_count }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <!-- Today's appointments -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-calendar-day"></i> Lịch khám hôm nay</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if today_appointments %}
+                                <ul class="list-group list-group-flush">
+                                    {% for apt in today_appointments %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ apt.appointment_time }}</strong> - {{ apt.patient }}
+                                            </div>
+                                            <span class="badge bg-{% if apt.status == 'pending' %}warning{% elif apt.status == 'confirmed' %}success{% else %}secondary{% endif %}">
+                                                {{ apt.get_status_display }}
+                                            </span>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted mb-0">Không có lịch khám hôm nay.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Pending appointments -->
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-hourglass-split"></i> Chờ duyệt</h5>
+                            <a href="{% url 'doctor_appointments' %}?status=pending" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                        </div>
+                        <div class="card-body">
+                            {% if pending_appointments %}
+                                <ul class="list-group list-group-flush">
+                                    {% for apt in pending_appointments %}
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ apt.patient }}</strong><br>
+                                                <small class="text-muted">{{ apt.appointment_date }} {{ apt.appointment_time }}</small>
+                                            </div>
+                                            <a href="{% url 'update_appointment' apt.id %}" class="btn btn-sm btn-primary">Duyệt</a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted mb-0">Không có lịch chờ duyệt.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

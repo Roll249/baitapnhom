@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Quản trị{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 sidebar py-3">
+            <div class="position-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{% url 'admin_dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_patients' %}">
+                            <i class="bi bi-people"></i> Quản lý bệnh nhân
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_doctors' %}">
+                            <i class="bi bi-person-badge"></i> Quản lý bác sĩ
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'manage_appointments' %}">
+                            <i class="bi bi-calendar-check"></i> Quản lý lịch khám
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'admin_reports' %}">
+                            <i class="bi bi-file-earmark-bar-graph"></i> Báo cáo
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin/">
+                            <i class="bi bi-gear"></i> Django Admin
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main content -->
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            <h2 class="mb-4">Tổng quan hệ thống</h2>
+            
+            <!-- Statistics -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 bg-light">
+                        <div class="card-body">
+                            <h6 class="text-muted"><i class="bi bi-people"></i> Tổng bệnh nhân</h6>
+                            <h2 class="mb-0">{{ total_patients }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 bg-light">
+                        <div class="card-body">
+                            <h6 class="text-muted"><i class="bi bi-person-badge"></i> Tổng bác sĩ</h6>
+                            <h2 class="mb-0">{{ total_doctors }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 bg-light">
+                        <div class="card-body">
+                            <h6 class="text-muted"><i class="bi bi-calendar"></i> Tổng lịch khám</h6>
+                            <h2 class="mb-0">{{ total_appointments }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card h-100 bg-warning bg-opacity-25">
+                        <div class="card-body">
+                            <h6 class="text-muted"><i class="bi bi-hourglass-split"></i> Chờ xử lý</h6>
+                            <h2 class="mb-0 text-warning">{{ pending_appointments }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <!-- Status statistics -->
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Theo trạng thái</h5>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                {% for stat in status_stats %}
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>
+                                            {% if stat.status == 'pending' %}Chờ xác nhận
+                                            {% elif stat.status == 'confirmed' %}Đã xác nhận
+                                            {% elif stat.status == 'completed' %}Hoàn thành
+                                            {% elif stat.status == 'cancelled' %}Đã hủy
+                                            {% elif stat.status == 'rejected' %}Từ chối
+                                            {% else %}{{ stat.status }}
+                                            {% endif %}
+                                        </span>
+                                        <span class="badge bg-primary">{{ stat.count }}</span>
+                                    </li>
+                                {% empty %}
+                                    <li class="list-group-item text-muted">Chưa có dữ liệu</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Recent appointments -->
+                <div class="col-md-8">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-clock-history"></i> Lịch khám gần đây</h5>
+                            <a href="{% url 'manage_appointments' %}" class="btn btn-sm btn-outline-primary">Xem tất cả</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Bệnh nhân</th>
+                                            <th>Bác sĩ</th>
+                                            <th>Ngày</th>
+                                            <th>Trạng thái</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for apt in recent_appointments %}
+                                            <tr>
+                                                <td>{{ apt.patient }}</td>
+                                                <td>{{ apt.doctor }}</td>
+                                                <td>{{ apt.appointment_date }}</td>
+                                                <td>
+                                                    <span class="badge bg-{% if apt.status == 'pending' %}warning{% elif apt.status == 'confirmed' %}success{% elif apt.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                                        {{ apt.get_status_display }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {% empty %}
+                                            <tr>
+                                                <td colspan="4" class="text-muted text-center">Chưa có lịch khám</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

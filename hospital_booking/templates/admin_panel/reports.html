@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}Báo cáo{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Báo cáo thống kê</h2>
+    
+    <div class="row g-4">
+        <!-- Monthly appointments -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-calendar3"></i> Lịch khám theo tháng</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tháng</th>
+                                <th>Số lượng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in monthly_appointments %}
+                                <tr>
+                                    <td>{{ stat.month|date:"m/Y" }}</td>
+                                    <td>{{ stat.count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center">Chưa có dữ liệu</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Appointments by doctor -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-person-badge"></i> Top 10 bác sĩ</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Bác sĩ</th>
+                                <th>Số lịch khám</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in doctor_appointments %}
+                                <tr>
+                                    <td>{{ stat.doctor__user__first_name }} {{ stat.doctor__user__last_name }}</td>
+                                    <td>{{ stat.count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center">Chưa có dữ liệu</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Appointments by specialization -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-heart-pulse"></i> Lịch khám theo chuyên khoa</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Chuyên khoa</th>
+                                <th>Số lịch khám</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in spec_appointments %}
+                                <tr>
+                                    <td>{{ stat.doctor__specialization__name|default:"Chưa phân loại" }}</td>
+                                    <td>{{ stat.count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center">Chưa có dữ liệu</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

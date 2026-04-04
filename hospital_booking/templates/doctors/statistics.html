@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Thống kê - Bác sĩ{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Thống kê</h2>
+    
+    <div class="row g-4">
+        <!-- Status statistics -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Thống kê theo trạng thái</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Trạng thái</th>
+                                <th>Số lượng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in status_stats %}
+                                <tr>
+                                    <td>
+                                        {% if stat.status == 'pending' %}Chờ xác nhận
+                                        {% elif stat.status == 'confirmed' %}Đã xác nhận
+                                        {% elif stat.status == 'completed' %}Hoàn thành
+                                        {% elif stat.status == 'cancelled' %}Đã hủy
+                                        {% elif stat.status == 'rejected' %}Từ chối
+                                        {% else %}{{ stat.status }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ stat.count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center">Chưa có dữ liệu</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Daily statistics -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Lịch khám 30 ngày qua</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Số lượng</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stat in appointments_by_date %}
+                                <tr>
+                                    <td>{{ stat.date }}</td>
+                                    <td>{{ stat.count }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="2" class="text-muted text-center">Chưa có dữ liệu</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
