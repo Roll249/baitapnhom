@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #17a2b8 0%, #138496 100%); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+        .info-box { background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #17a2b8; }
+        .amount { font-size: 24px; color: #28a745; font-weight: bold; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💳 Thanh toán thành công!</h1>
+        </div>
+        <div class="content">
+            <h2>Xin chào {{ billing.appointment.patient.user.get_full_name }},</h2>
+            <p>Thanh toán của bạn đã được xử lý thành công!</p>
+            
+            <div class="info-box">
+                <p><strong>Mã hóa đơn:</strong> #{{ billing.id }}</p>
+                <p><strong>Số tiền:</strong> <span class="amount">{{ billing.amount|floatformat:0 }} VNĐ</span></p>
+                <p><strong>Phương thức:</strong> {{ billing.payment_method }}</p>
+                <p><strong>Ngày thanh toán:</strong> {{ billing.payment_date|date:"d/m/Y H:i" }}</p>
+            </div>
+            
+            <div class="info-box">
+                <p><strong>Chi tiết lịch khám:</strong></p>
+                <p>Bác sĩ: {{ billing.appointment.doctor }}</p>
+                <p>Ngày khám: {{ billing.appointment.appointment_date|date:"d/m/Y" }}</p>
+            </div>
+            
+            <p>Cảm ơn bạn đã sử dụng dịch vụ của HealthCare!</p>
+            
+            <div class="footer">
+                <p>Email này được gửi tự động từ hệ thống HealthCare.</p>
+                <p>© 2024 HealthCare - Đặt lịch khám bệnh trực tuyến</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

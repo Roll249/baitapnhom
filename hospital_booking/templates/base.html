@@ -2,55 +2,236 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}Hệ thống đặt lịch khám bệnh{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+        }
+        
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
         body {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            font-size: 16px;
         }
+        
         .navbar-brand {
             font-weight: bold;
         }
+        
         .hero-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary-gradient);
             color: white;
-            padding: 100px 0;
+            padding: 60px 0;
         }
+        
         .card {
             transition: transform 0.2s;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
+        
         .card:hover {
             transform: translateY(-5px);
         }
+        
         .sidebar {
             min-height: calc(100vh - 56px);
             background-color: #f8f9fa;
         }
+        
         .sidebar .nav-link {
             color: #333;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 4px 8px;
         }
+        
         .sidebar .nav-link:hover, .sidebar .nav-link.active {
-            background-color: #667eea;
+            background-color: var(--primary-color);
             color: white;
         }
+        
         footer {
             margin-top: auto;
             background-color: #343a40;
             color: white;
             padding: 20px 0;
         }
+        
         .stat-card {
-            border-left: 4px solid #667eea;
+            border-left: 4px solid var(--primary-color);
+            border-radius: 12px;
         }
+        
         .status-pending { color: #ffc107; }
         .status-confirmed { color: #28a745; }
         .status-completed { color: #17a2b8; }
         .status-cancelled { color: #dc3545; }
         .status-rejected { color: #6c757d; }
+        
+        /* Notification Dropdown */
+        .notification-dropdown {
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .notification-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+        }
+        
+        .notification-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .notification-item.unread {
+            background-color: #e8f4fd;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            transform: translate(25%, -25%);
+        }
+        
+        /* Mobile Responsive Improvements */
+        @media (max-width: 991.98px) {
+            .hero-section {
+                padding: 40px 0;
+            }
+            
+            .hero-section h1 {
+                font-size: 1.75rem;
+            }
+            
+            .navbar-nav .dropdown-menu {
+                position: static;
+                float: none;
+                width: 100%;
+                border: none;
+                box-shadow: none;
+            }
+            
+            .notification-dropdown {
+                width: 100%;
+                max-width: none;
+            }
+        }
+        
+        @media (max-width: 767.98px) {
+            body {
+                font-size: 14px;
+            }
+            
+            .container {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+            
+            .card {
+                margin-bottom: 12px;
+            }
+            
+            .card-body {
+                padding: 16px;
+            }
+            
+            .table-responsive {
+                font-size: 13px;
+            }
+            
+            .btn {
+                padding: 10px 16px;
+            }
+            
+            .btn-sm {
+                padding: 6px 12px;
+            }
+            
+            /* Stack cards on mobile */
+            .row > [class*="col-"] {
+                margin-bottom: 12px;
+            }
+            
+            /* Improve form inputs on mobile */
+            .form-control, .form-select {
+                font-size: 16px;
+                padding: 12px 16px;
+            }
+            
+            /* Bottom navigation padding */
+            main {
+                padding-bottom: 20px;
+            }
+            
+            /* Hide sidebar on mobile, show as offcanvas */
+            .sidebar {
+                min-height: auto;
+            }
+            
+            footer {
+                padding: 16px 0;
+            }
+            
+            footer p {
+                font-size: 12px;
+            }
+        }
+        
+        /* Touch-friendly buttons */
+        @media (pointer: coarse) {
+            .btn {
+                min-height: 44px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .nav-link {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+            
+            .dropdown-item {
+                padding: 12px 20px;
+            }
+        }
+        
+        /* PWA-like header */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1030;
+        }
+        
+        /* Loading animation */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
@@ -72,13 +253,41 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
                         </li>
+                        {% if user.is_patient %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'payment_history' %}">
+                                <i class="bi bi-credit-card"></i> Thanh toán
+                            </a>
+                        </li>
+                        {% endif %}
                     {% endif %}
                 </ul>
                 <ul class="navbar-nav">
                     {% if user.is_authenticated %}
+                        <!-- Notification Dropdown -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-bell"></i>
+                                <span class="badge bg-danger notification-badge" id="notificationCount" style="display: none;">0</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end notification-dropdown" aria-labelledby="notificationDropdown">
+                                <li class="dropdown-header d-flex justify-content-between align-items-center">
+                                    <strong>Thông báo</strong>
+                                    <a href="#" class="text-primary small" onclick="markAllRead()">Đánh dấu đã đọc</a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <div id="notificationList">
+                                    <li class="text-center py-3 text-muted">
+                                        <div class="loading-spinner"></div>
+                                    </li>
+                                </div>
+                            </ul>
+                        </li>
+                        
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="bi bi-person-circle"></i> {{ user.get_full_name|default:user.username }}
+                                <i class="bi bi-person-circle"></i> 
+                                <span class="d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person"></i> Hồ sơ</a></li>
@@ -122,6 +331,58 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% if user.is_authenticated %}
+    <script>
+        // Load notifications
+        function loadNotifications() {
+            fetch('{% url "get_notifications" %}')
+                .then(response => response.json())
+                .then(data => {
+                    const countBadge = document.getElementById('notificationCount');
+                    const notificationList = document.getElementById('notificationList');
+                    
+                    if (data.unread_count > 0) {
+                        countBadge.textContent = data.unread_count > 9 ? '9+' : data.unread_count;
+                        countBadge.style.display = 'inline';
+                    } else {
+                        countBadge.style.display = 'none';
+                    }
+                    
+                    if (data.notifications.length === 0) {
+                        notificationList.innerHTML = '<li class="text-center py-3 text-muted">Không có thông báo mới</li>';
+                    } else {
+                        notificationList.innerHTML = data.notifications.map(n => `
+                            <li>
+                                <a class="dropdown-item notification-item ${n.is_read ? '' : 'unread'}" 
+                                   href="{% url 'mark_notification_read' 0 %}".replace('0', n.id)>
+                                    <div class="fw-bold">${n.title}</div>
+                                    <div class="small text-muted">${n.message}</div>
+                                    <div class="small text-muted mt-1">${n.created_at}</div>
+                                </a>
+                            </li>
+                        `).join('');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading notifications:', error);
+                });
+        }
+        
+        function markAllRead() {
+            fetch('{% url "mark_all_notifications_read" %}', { method: 'POST' })
+                .then(() => loadNotifications())
+                .catch(error => console.error('Error:', error));
+        }
+        
+        // Load notifications on page load
+        document.addEventListener('DOMContentLoaded', loadNotifications);
+        
+        // Refresh notifications every 30 seconds
+        setInterval(loadNotifications, 30000);
+    </script>
+    {% endif %}
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

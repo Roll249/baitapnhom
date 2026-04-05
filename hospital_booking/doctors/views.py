@@ -6,8 +6,9 @@ from django.db.models.functions import TruncDate
 from datetime import date, timedelta
 from .models import Doctor, DoctorSchedule
 from .forms import DoctorProfileForm, DoctorScheduleForm
-from appointments.models import Appointment
+from appointments.models import Appointment, Billing
 from appointments.forms import AppointmentStatusForm
+from notifications.services import notify_appointment_confirmed, notify_appointment_cancelled
 
 
 def doctor_required(view_func):
@@ -85,11 +86,25 @@ def update_appointment(request, appointment_id):
     """Update appointment status"""
     doctor = request.user.doctor_profile
     appointment = get_object_or_404(Appointment, id=appointment_id, doctor=doctor)
+    old_status = appointment.status
     
     if request.method == 'POST':
         form = AppointmentStatusForm(request.POST, instance=appointment)
         if form.is_valid():
-            form.save()
+            updated_appointment = form.save()
+            
+            # Send notifications based on status change
+            if updated_appointment.status == 'confirmed' and old_status != 'confirmed':
+                notify_appointment_confirmed(updated_appointment)
+            elif updated_appointment.status == 'rejected':
+                notify_appointment_cancelled(updated_appointment, 'doctor')
+            elif updated_appointment.status == 'completed' and old_status != 'completed':
+                # Create billing for completed appointments
+                Billing.objects.get_or_create(
+                    appointment=updated_appointment,
+                    defaults={'amount': doctor.consultation_fee}
+                )
+            
             messages.success(request, 'Cập nhật trạng thái lịch khám thành công.')
             return redirect('doctor_appointments')
     else:

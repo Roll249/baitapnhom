@@ -4,6 +4,7 @@ from django.contrib import messages
 from doctors.models import Doctor, Specialization
 from appointments.models import Appointment
 from appointments.forms import AppointmentForm
+from notifications.services import notify_appointment_created, notify_appointment_cancelled
 
 
 def patient_required(view_func):
@@ -87,6 +88,10 @@ def book_appointment(request, doctor_id=None):
             appointment.patient = patient
             appointment.status = 'pending'
             appointment.save()
+            
+            # Send notification to doctor
+            notify_appointment_created(appointment)
+            
             messages.success(request, 'Đặt lịch khám thành công! Vui lòng chờ bác sĩ xác nhận.')
             return redirect('my_appointments')
     else:
@@ -127,6 +132,10 @@ def cancel_appointment(request, appointment_id):
     if appointment.status in ['pending', 'confirmed']:
         appointment.status = 'cancelled'
         appointment.save()
+        
+        # Notify doctor about cancellation
+        notify_appointment_cancelled(appointment, 'patient')
+        
         messages.success(request, 'Đã hủy lịch khám thành công.')
     else:
         messages.error(request, 'Không thể hủy lịch khám này.')
