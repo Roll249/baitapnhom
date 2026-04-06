@@ -195,4 +195,5 @@ SEPAY_BANK_CODE = ''  # Ví dụ: MBBank, ACB, VCB
 SEPAY_ACCOUNT_NUMBER = ''
 SEPAY_ACCOUNT_NAME = ''
 SEPAY_QR_TEMPLATE = 'compact2'
-SEPAY_WEBHOOK_SECRET = ''  # Token bảo vệ webhook
+SEPAY_WEBHOOK_SECRET = ''  # Token tự đặt để bảo vệ webhook (gửi qua header/query/body)
+SEPAY_REQUIRE_WEBHOOK_TOKEN = False  # Bật True khi đã cấu hình token ổn định từ phía SePay

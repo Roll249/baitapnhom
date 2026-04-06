@@ -1,4 +1,5 @@
 import json
+import logging
 import re
 
 from django.shortcuts import render, redirect, get_object_or_404
@@ -14,6 +15,9 @@ from appointments.models import Billing
 from notifications.services import notify_payment_success
 from .vnpay import VNPayService
 from .sepay import SePayService
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_client_ip(request):
@@ -106,12 +110,28 @@ def _extract_billing_id_from_content(transfer_content):
 def sepay_webhook(request):
     """Handle webhook from SePay and mark billing paid when transfer is valid."""
     expected_secret = getattr(settings, 'SEPAY_WEBHOOK_SECRET', '')
+    require_token = getattr(settings, 'SEPAY_REQUIRE_WEBHOOK_TOKEN', False)
+
+    raw_auth = request.headers.get('Authorization', '')
+    auth_token = raw_auth.strip()
+    for prefix in ['Bearer ', 'Apikey ', 'Token ']:
+        if raw_auth.startswith(prefix):
+            auth_token = raw_auth.replace(prefix, '', 1).strip()
+            break
+
+    provided_tokens = [
+        auth_token,
+        request.headers.get('X-Webhook-Token', '').strip(),
+        request.headers.get('X-Sepay-Token', '').strip(),
+        request.GET.get('token', '').strip(),
+    ]
+    provided_tokens = [token for token in provided_tokens if token]
+
     if expected_secret:
-        auth_header = request.headers.get('Authorization', '')
-        bearer_token = auth_header.replace('Bearer ', '').strip() if auth_header else ''
-        webhook_token = bearer_token or request.headers.get('X-Webhook-Token', '') or request.GET.get('token', '')
-        if webhook_token != expected_secret:
+        if provided_tokens and expected_secret not in provided_tokens:
             return JsonResponse({'success': False, 'message': 'Unauthorized webhook'}, status=401)
+        if require_token and not provided_tokens:
+            return JsonResponse({'success': False, 'message': 'Webhook token is required'}, status=401)
 
     try:
         payload = json.loads(request.body.decode('utf-8') or '{}')
@@ -121,20 +141,39 @@ def sepay_webhook(request):
     if not isinstance(payload, dict):
         return JsonResponse({'success': False, 'message': 'Payload must be a JSON object'}, status=400)
 
+    # Some providers send payload wrapped in "data" key.
+    payload_data = payload.get('data')
+    if isinstance(payload_data, dict):
+        payload = payload_data
+
+    body_token = str(payload.get('token', '')).strip()
+    if expected_secret and body_token:
+        if body_token != expected_secret:
+            return JsonResponse({'success': False, 'message': 'Unauthorized webhook'}, status=401)
+
     normalized = SePayService.normalize_webhook_payload(payload)
     billing_id = _extract_billing_id_from_content(normalized['transfer_content'])
 
     if not billing_id:
+        logger.warning('SePay webhook missing BILL reference. payload=%s', payload)
         return JsonResponse({'success': False, 'message': 'Billing reference not found'}, status=400)
 
     billing = Billing.objects.filter(id=billing_id).select_related('appointment__patient__user').first()
     if not billing:
+        logger.warning('SePay webhook billing not found. billing_id=%s payload=%s', billing_id, payload)
         return JsonResponse({'success': False, 'message': 'Billing not found'}, status=404)
 
     if billing.payment_status == 'paid':
         return JsonResponse({'success': True, 'message': 'Billing already paid'})
 
     if normalized['amount'] < billing.amount:
+        logger.warning(
+            'SePay webhook amount mismatch. billing_id=%s expected=%s got=%s payload=%s',
+            billing.id,
+            billing.amount,
+            normalized['amount'],
+            payload,
+        )
         return JsonResponse({'success': False, 'message': 'Transferred amount is less than billing amount'}, status=400)
 
     billing.payment_status = 'paid'

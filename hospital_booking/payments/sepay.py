@@ -44,26 +44,34 @@ class SePayService:
         """Normalize SePay webhook payload so view logic can stay simple."""
         transfer_content = (
             payload.get('transferContent')
+            or payload.get('transfer_content')
             or payload.get('description')
             or payload.get('content')
+            or payload.get('transactionContent')
             or payload.get('code')
             or ''
         )
         transaction_code = (
             payload.get('id')
+            or payload.get('transaction_id')
             or payload.get('referenceCode')
             or payload.get('transactionNo')
-            or payload.get('transaction_id')
+            or payload.get('transactionCode')
             or ''
         )
 
         raw_amount = payload.get('transferAmount')
         if raw_amount is None:
             raw_amount = payload.get('amount')
+        if raw_amount is None:
+            raw_amount = payload.get('transfer_amount')
+
+        amount_text = str(raw_amount or 0).strip()
+        amount_text = amount_text.replace(',', '').replace(' ', '')
 
         amount = Decimal('0')
         try:
-            amount = Decimal(str(raw_amount or 0))
+            amount = Decimal(amount_text)
         except (InvalidOperation, TypeError):
             amount = Decimal('0')
 
