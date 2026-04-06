@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'doctors',
     'appointments',
     'notifications',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -188,3 +189,10 @@ VNPAY_TMN_CODE = ''  # Terminal code từ VNPay sandbox
 VNPAY_HASH_SECRET_KEY = ''  # Secret key từ VNPay sandbox
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
 VNPAY_RETURN_URL = 'http://localhost:8000/payment/vnpay-return/'
+
+# SePay QR Configuration
+SEPAY_BANK_CODE = ''  # Ví dụ: MBBank, ACB, VCB
+SEPAY_ACCOUNT_NUMBER = ''
+SEPAY_ACCOUNT_NAME = ''
+SEPAY_QR_TEMPLATE = 'compact2'
+SEPAY_WEBHOOK_SECRET = ''  # Token bảo vệ webhook

@@ -8,7 +8,7 @@ Hệ thống hỗ trợ bệnh nhân đặt lịch khám trực tuyến, quản 
 - **Database**: SQLite (development) / PostgreSQL (production)
 - **Frontend**: HTML, CSS, Bootstrap 5, JavaScript
 - **Authentication**: Session-based + JWT (API)
-- **Payment**: VNPay Integration
+- **Payment**: SePay QR + VNPay Integration
 
 ## Tính năng chính
 
@@ -18,7 +18,7 @@ Hệ thống hỗ trợ bệnh nhân đặt lịch khám trực tuyến, quản 
 - Xem lịch trống của bác sĩ và đặt lịch
 - Hủy lịch trước giờ khám
 - Xem lịch sử đặt lịch và trạng thái
-- **Thanh toán online qua VNPay**
+- **Thanh toán online qua SePay QR / VNPay**
 - **Nhận thông báo email & in-app**
 
 ### 👨‍⚕️ Bác sĩ
@@ -78,6 +78,14 @@ Truy cập: http://127.0.0.1:8000
 ```python
 EMAIL_HOST_USER = 'your-email@gmail.com'
 EMAIL_HOST_PASSWORD = 'your-app-password'
+```
+
+### SePay QR (settings.py)
+```python
+SEPAY_BANK_CODE = 'your-bank-code'
+SEPAY_ACCOUNT_NUMBER = 'your-account-number'
+SEPAY_ACCOUNT_NAME = 'your-account-name'
+SEPAY_WEBHOOK_SECRET = 'your-webhook-secret'
 ```
 
 ### VNPay (settings.py)
@@ -146,7 +154,7 @@ hospital_booking/
        ↓ 📧 Email thông báo cho bác sĩ
 [Bác sĩ duyệt → status: confirmed]
        ↓ 📧 Email xác nhận cho bệnh nhân
-[Bệnh nhân thanh toán qua VNPay]
+[Bệnh nhân thanh toán qua SePay QR / VNPay]
        ↓ 📧 Email xác nhận thanh toán
 [Admin xem báo cáo từ appointments]
 ```

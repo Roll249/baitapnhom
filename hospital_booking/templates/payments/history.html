@@ -49,7 +49,7 @@
                             <td>
                                 {% if billing.payment_status == 'pending' %}
                                     <a href="{% url 'create_payment' billing.id %}" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-credit-card"></i> Thanh toán
+                                        <i class="bi bi-qr-code"></i> Thanh toán QR
                                     </a>
                                 {% else %}
                                     <span class="text-muted">-</span>
