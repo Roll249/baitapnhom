@@ -11,12 +11,26 @@
         </a>
     </div>
 
+    {% if billing.payment_status == 'paid' %}
+    <div class="alert alert-success" role="alert">
+        <h4 class="alert-heading"><i class="bi bi-check-circle"></i> Thanh toán đã được xác nhận!</h4>
+        <p>Hóa đơn #{{ billing.id }} đã được thanh toán thành công.</p>
+        <hr>
+        <p class="mb-0">
+            <a href="{% url 'my_appointments' %}" class="btn btn-success">Xem lịch hẹn của tôi</a>
+        </p>
+    </div>
+    {% else %}
     <div class="row g-4">
         <div class="col-lg-5">
             <div class="card h-100">
                 <div class="card-body text-center">
                     <h5 class="mb-3">Mã QR thanh toán</h5>
-                    <img src="{{ checkout_data.qr_image_url }}" alt="SePay QR" class="img-fluid border rounded p-2" style="max-width: 320px;">
+                    <div id="qr-loading" class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <img id="qr-image" src="{{ checkout_data.qr_image_url }}" alt="SePay QR" class="img-fluid border rounded p-2 d-none"
+                        style="max-width: 320px;" onload="document.getElementById('qr-loading').classList.add('d-none'); this.classList.remove('d-none');">
                     <p class="text-muted mt-3 mb-0">Mở app ngân hàng và quét mã QR để thanh toán.</p>
                 </div>
             </div>
@@ -29,7 +43,7 @@
                     <table class="table table-borderless">
                         <tr>
                             <th width="180">Mã hóa đơn:</th>
-                            <td>#{{ billing.id }}</td>
+                            <td><strong>#{{ billing.id }}</strong></td>
                         </tr>
                         <tr>
                             <th>Số tiền:</th>
@@ -51,62 +65,111 @@
                             <th>Nội dung CK:</th>
                             <td>
                                 <code id="transfer-content">{{ checkout_data.transfer_content }}</code>
-                                <button class="btn btn-sm btn-outline-primary ms-2" id="copy-content-btn" type="button">Sao chép</button>
+                                <button class="btn btn-sm btn-outline-primary ms-2" id="copy-content-btn"
+                                    type="button">Sao chép</button>
                             </td>
                         </tr>
                     </table>
 
                     <div class="alert alert-warning mt-3 mb-0">
                         <i class="bi bi-exclamation-triangle"></i>
-                        Vui lòng giữ nguyên nội dung chuyển khoản để hệ thống tự động xác nhận thanh toán.
+                        Vui lòng giữ nguyên nội dung chuyển khoản <strong>BILL{{ billing.id }}</strong> để hệ thống tự động xác nhận thanh toán.
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="alert alert-info mt-4" id="payment-waiting-alert">
-        <i class="bi bi-hourglass-split"></i> Đang chờ thanh toán... Trang sẽ tự động cập nhật khi nhận được webhook từ SePay.
+    <div class="alert alert-info mt-4" id="payment-status-card">
+        <div class="d-flex align-items-center">
+            <div class="spinner-border spinner-border-sm me-3" role="status" id="status-spinner">
+                <span class="visually-hidden">Đang chờ...</span>
+            </div>
+            <div>
+                <strong id="status-title">Đang chờ thanh toán...</strong>
+                <p class="mb-0 text-muted" id="status-message">
+                    Sau khi chuyển khoản thành công, trang sẽ tự động cập nhật trong vài giây.
+                </p>
+            </div>
+        </div>
     </div>
+
+    {% if request.get_host == 'localhost' or request.get_host == '127.0.0.1' %}
+    <div class="alert alert-warning mt-3" role="alert">
+        <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Lưu ý cho Development</h6>
+        <p class="mb-0">
+            Để webhook hoạt động, bạn cần chạy <code>ngrok http 8000</code> và cập nhật URL webhook 
+            trong SePay Dashboard thành URL ngrok (ví dụ: <code>https://abc123.ngrok-free.app/payment/sepay/webhook/</code>).
+            Xem chi tiết trong file <code>scripts/setup_tunnel.sh</code>.
+        </p>
+    </div>
+    {% endif %}
+    {% endif %}
 </div>
 
 <script>
-(function () {
-    const statusUrl = "{% url 'payment_status' billing.id %}";
-    const appointmentsUrl = "{% url 'my_appointments' %}";
-    const copyButton = document.getElementById('copy-content-btn');
-    const transferContent = document.getElementById('transfer-content');
+    (function () {
+        const statusUrl = "{% url 'payment_status' billing.id %}";
+        const appointmentsUrl = "{% url 'my_appointments' %}";
+        const copyButton = document.getElementById('copy-content-btn');
+        const transferContent = document.getElementById('transfer-content');
+        const statusSpinner = document.getElementById('status-spinner');
+        const statusTitle = document.getElementById('status-title');
+        const statusMessage = document.getElementById('status-message');
+        const statusCard = document.getElementById('payment-status-card');
 
-    copyButton.addEventListener('click', async function () {
-        try {
-            await navigator.clipboard.writeText(transferContent.textContent.trim());
-            copyButton.textContent = 'Da sao chep';
-            setTimeout(() => {
-                copyButton.textContent = 'Sao chep';
-            }, 1500);
-        } catch (error) {
-            console.error(error);
-        }
-    });
+        let checkCount = 0;
 
-    async function checkStatus() {
-        try {
-            const response = await fetch(statusUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!response.ok) {
-                return;
+        copyButton && copyButton.addEventListener('click', async function () {
+            try {
+                await navigator.clipboard.writeText(transferContent.textContent.trim());
+                copyButton.textContent = 'Đã sao chép';
+                setTimeout(() => {
+                    copyButton.textContent = 'Sao chép';
+                }, 2000);
+            } catch (error) {
+                console.error(error);
             }
+        });
 
-            const data = await response.json();
-            if (data.is_paid) {
-                window.location.href = appointmentsUrl;
+        async function checkStatus() {
+            checkCount++;
+            try {
+                const response = await fetch(statusUrl, { 
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' } 
+                });
+                if (!response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+                if (data.is_paid) {
+                    statusSpinner.classList.remove('spinner-border');
+                    statusSpinner.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
+                    statusTitle.textContent = 'Thanh toán thành công!';
+                    statusMessage.textContent = 'Đang chuyển hướng...';
+                    statusCard.classList.remove('alert-info');
+                    statusCard.classList.add('alert-success');
+                    
+                    setTimeout(() => {
+                        window.location.href = appointmentsUrl;
+                    }, 1500);
+                } else if (checkCount > 30) {
+                    statusMessage.textContent = 'Đang chờ lâu? Hãy kiểm tra lại việc chuyển khoản và đảm bảo webhook đang hoạt động.';
+                } else {
+                    statusMessage.textContent = `Đang chờ thanh toán... (${checkCount * 8} giây)`;
+                }
+            } catch (error) {
+                console.error(error);
             }
-        } catch (error) {
-            console.error(error);
         }
-    }
 
-    checkStatus();
-    setInterval(checkStatus, 8000);
-})();
+        checkStatus();
+        const intervalId = setInterval(checkStatus, 8000);
+        
+        setTimeout(() => {
+            clearInterval(intervalId);
+        }, 240000);
+    })();
 </script>
 {% endblock %}

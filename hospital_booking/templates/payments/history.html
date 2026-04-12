@@ -10,7 +10,7 @@
             <i class="bi bi-arrow-left"></i> Quay lại
         </a>
     </div>
-    
+
     {% if billings %}
     <div class="card">
         <div class="card-body">
@@ -37,22 +37,22 @@
                             <td class="fw-bold text-primary">{{ billing.amount|floatformat:0 }} VNĐ</td>
                             <td>
                                 {% if billing.payment_status == 'paid' %}
-                                    <span class="badge bg-success">Đã thanh toán</span>
+                                <span class="badge bg-success">Đã thanh toán</span>
                                 {% elif billing.payment_status == 'pending' %}
-                                    <span class="badge bg-warning text-dark">Chưa thanh toán</span>
+                                <span class="badge bg-warning text-dark">Chưa thanh toán</span>
                                 {% else %}
-                                    <span class="badge bg-info">Đã hoàn tiền</span>
+                                <span class="badge bg-info">Đã hoàn tiền</span>
                                 {% endif %}
                             </td>
                             <td>{{ billing.payment_method|default:"-" }}</td>
                             <td>{{ billing.payment_date|date:"d/m/Y H:i"|default:"-" }}</td>
                             <td>
                                 {% if billing.payment_status == 'pending' %}
-                                    <a href="{% url 'create_payment' billing.id %}" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-qr-code"></i> Thanh toán QR
-                                    </a>
+                                <a href="{% url 'create_payment' billing.id %}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-qr-code"></i> Thanh toán QR
+                                </a>
                                 {% else %}
-                                    <span class="text-muted">-</span>
+                                <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                         </tr>

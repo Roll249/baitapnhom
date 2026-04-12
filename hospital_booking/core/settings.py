@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-wp^$7-=9&$r8d46aewl@m@uywpou#8yf$d1opkgih=xsn_-_$*'
+# Use environment variable in production, fallback to dev key for local development
+SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-wp^$7-=9&$r8d46aewl@m@uywpou#8yf$d1opkgih=xsn_-_$*')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS configuration
+# Development: localhost and ngrok tunnels
+# Production: should be set via environment variable
+ALLOWED_HOSTS_DEV = ['localhost', '127.0.0.1', '*.ngrok-free.app', '*.ngrok.io']
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if not DEBUG else ALLOWED_HOSTS_DEV
+if not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ALLOWED_HOSTS_DEV if DEBUG else []
 
 
 # Application definition
@@ -191,9 +199,47 @@ VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
 VNPAY_RETURN_URL = 'http://localhost:8000/payment/vnpay-return/'
 
 # SePay QR Configuration
-SEPAY_BANK_CODE = ''  # Ví dụ: MBBank, ACB, VCB
-SEPAY_ACCOUNT_NUMBER = ''
-SEPAY_ACCOUNT_NAME = ''
-SEPAY_QR_TEMPLATE = 'compact2'
-SEPAY_WEBHOOK_SECRET = ''  # Token tự đặt để bảo vệ webhook (gửi qua header/query/body)
-SEPAY_REQUIRE_WEBHOOK_TOKEN = False  # Bật True khi đã cấu hình token ổn định từ phía SePay
+SEPAY_BANK_CODE = os.environ.get('SEPAY_BANK_CODE', 'MBBank')  # Ví dụ: MBBank, ACB, VCB
+SEPAY_ACCOUNT_NUMBER = os.environ.get('SEPAY_ACCOUNT_NUMBER', '0982079321')
+SEPAY_ACCOUNT_NAME = os.environ.get('SEPAY_ACCOUNT_NAME', 'LE QUYNH TRANG')
+SEPAY_QR_TEMPLATE = os.environ.get('SEPAY_QR_TEMPLATE', 'compact2')
+SEPAY_WEBHOOK_SECRET = os.environ.get('SEPAY_WEBHOOK_SECRET', 'spsk_live_VatgDg5Vz9o1PRdBpLiK76qk1GCZUkVM')
+SEPAY_REQUIRE_WEBHOOK_TOKEN = os.environ.get('SEPAY_REQUIRE_WEBHOOK_TOKEN', 'True').lower() in ('true', '1', 'yes')
+
+# SePay Webhook URL - URL công khai để SePay gọi webhook
+# Development: cần dùng ngrok (VD: https://abc123.ngrok-free.app)
+# Production: đặt domain thật của bạn
+SEPAY_WEBHOOK_URL = os.environ.get('SEPAY_WEBHOOK_URL', '')
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'debug.log',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'payments.views': {
+            'handlers': ['console', 'file'] if not DEBUG else ['console'],
+            'level': 'DEBUG',
+        },
+        'django.request': {
+            'handlers': ['console'] if not DEBUG else ['console'],
+            'level': 'WARNING',
+        },
+    },
+}

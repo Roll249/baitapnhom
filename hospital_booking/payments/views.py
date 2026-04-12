@@ -108,7 +108,19 @@ def _extract_billing_id_from_content(transfer_content):
 @csrf_exempt
 @require_http_methods(["POST"])
 def sepay_webhook(request):
-    """Handle webhook from SePay and mark billing paid when transfer is valid."""
+    """
+    Handle webhook from SePay and mark billing paid when transfer is valid.
+    
+    IMPORTANT: Để webhook hoạt động, server phải có public URL:
+    - Development: Sử dụng ngrok: `ngrok http 8000`
+    - Production: Deploy lên server có domain và SSL
+    
+    SePay sẽ gửi POST request đến URL webhook đã cấu hình trong SePay Dashboard.
+    """
+    logger.info('='*60)
+    logger.info('SePay Webhook: Request received from %s', get_client_ip(request))
+    logger.debug('SePay Webhook: Headers=%s', dict(request.headers))
+    
     expected_secret = getattr(settings, 'SEPAY_WEBHOOK_SECRET', '')
     require_token = getattr(settings, 'SEPAY_REQUIRE_WEBHOOK_TOKEN', False)
 
@@ -126,63 +138,87 @@ def sepay_webhook(request):
         request.GET.get('token', '').strip(),
     ]
     provided_tokens = [token for token in provided_tokens if token]
+    
+    logger.debug('SePay Webhook: Provided tokens count=%d', len(provided_tokens))
 
     if expected_secret:
         if provided_tokens and expected_secret not in provided_tokens:
+            logger.warning('SePay Webhook: Unauthorized - invalid token provided')
             return JsonResponse({'success': False, 'message': 'Unauthorized webhook'}, status=401)
         if require_token and not provided_tokens:
+            logger.warning('SePay Webhook: Unauthorized - token required but not provided')
             return JsonResponse({'success': False, 'message': 'Webhook token is required'}, status=401)
 
     try:
         payload = json.loads(request.body.decode('utf-8') or '{}')
-    except json.JSONDecodeError:
+        logger.debug('SePay Webhook: Raw payload=%s', payload)
+    except json.JSONDecodeError as e:
+        logger.error('SePay Webhook: Invalid JSON payload - %s', e)
         return JsonResponse({'success': False, 'message': 'Invalid JSON payload'}, status=400)
 
     if not isinstance(payload, dict):
+        logger.error('SePay Webhook: Payload must be a JSON object')
         return JsonResponse({'success': False, 'message': 'Payload must be a JSON object'}, status=400)
 
-    # Some providers send payload wrapped in "data" key.
     payload_data = payload.get('data')
     if isinstance(payload_data, dict):
         payload = payload_data
+        logger.debug('SePay Webhook: Unwrapped nested payload')
 
     body_token = str(payload.get('token', '')).strip()
     if expected_secret and body_token:
         if body_token != expected_secret:
+            logger.warning('SePay Webhook: Unauthorized - invalid token in body')
             return JsonResponse({'success': False, 'message': 'Unauthorized webhook'}, status=401)
 
     normalized = SePayService.normalize_webhook_payload(payload)
+    logger.info('SePay Webhook: Normalized data - transfer_content=%s, amount=%s', 
+               normalized['transfer_content'], normalized['amount'])
+    
     billing_id = _extract_billing_id_from_content(normalized['transfer_content'])
 
     if not billing_id:
-        logger.warning('SePay webhook missing BILL reference. payload=%s', payload)
+        logger.warning('SePay Webhook: Missing BILL reference in transfer_content="%s"', 
+                       normalized['transfer_content'])
         return JsonResponse({'success': False, 'message': 'Billing reference not found'}, status=400)
 
     billing = Billing.objects.filter(id=billing_id).select_related('appointment__patient__user').first()
     if not billing:
-        logger.warning('SePay webhook billing not found. billing_id=%s payload=%s', billing_id, payload)
+        logger.warning('SePay Webhook: Billing not found. billing_id=%s', billing_id)
         return JsonResponse({'success': False, 'message': 'Billing not found'}, status=404)
 
+    logger.info('SePay Webhook: Found billing #%s - current status=%s, expected amount=%s, received amount=%s',
+                billing_id, billing.payment_status, billing.amount, normalized['amount'])
+
     if billing.payment_status == 'paid':
+        logger.info('SePay Webhook: Billing #%s already paid, skipping', billing_id)
         return JsonResponse({'success': True, 'message': 'Billing already paid'})
 
     if normalized['amount'] < billing.amount:
         logger.warning(
-            'SePay webhook amount mismatch. billing_id=%s expected=%s got=%s payload=%s',
-            billing.id,
-            billing.amount,
-            normalized['amount'],
-            payload,
+            'SePay Webhook: Amount mismatch for billing #%s - expected=%s, got=%s',
+            billing_id, billing.amount, normalized['amount']
         )
         return JsonResponse({'success': False, 'message': 'Transferred amount is less than billing amount'}, status=400)
 
     billing.payment_status = 'paid'
     billing.payment_date = timezone.now()
     billing.payment_method = 'SePay'
-    billing.save(update_fields=['payment_status', 'payment_date', 'payment_method'])
+    if normalized.get('transaction_code'):
+        billing.transaction_id = normalized['transaction_code']
+    billing.save(update_fields=['payment_status', 'payment_date', 'payment_method', 'transaction_id'])
+    
+    logger.info('SePay Webhook: Billing #%s marked as PAID successfully', billing_id)
 
-    notify_payment_success(billing)
+    try:
+        notify_payment_success(billing)
+        logger.info('SePay Webhook: Payment notification sent for billing #%s', billing_id)
+    except Exception as e:
+        logger.error('SePay Webhook: Failed to send notification for billing #%s - %s', billing_id, e)
 
+    logger.info('SePay Webhook: Completed successfully for billing #%s', billing_id)
+    logger.info('='*60)
+    
     return JsonResponse({'success': True, 'message': 'Payment confirmed'})
 
 

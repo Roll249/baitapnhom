@@ -100,10 +100,19 @@ def update_appointment(request, appointment_id):
                 notify_appointment_cancelled(updated_appointment, 'doctor')
             elif updated_appointment.status == 'completed' and old_status != 'completed':
                 # Create billing for completed appointments
-                Billing.objects.get_or_create(
+                # Amount will be auto-set from doctor.consultation_fee via Billing.save()
+                billing, created = Billing.objects.get_or_create(
                     appointment=updated_appointment,
-                    defaults={'amount': doctor.consultation_fee}
+                    defaults={
+                        'amount': doctor.consultation_fee,
+                        'consultation_fee_snapshot': doctor.consultation_fee
+                    }
                 )
+                if not created:
+                    # Update amount if billing already exists
+                    billing.amount = doctor.consultation_fee
+                    billing.consultation_fee_snapshot = doctor.consultation_fee
+                    billing.save()
             
             messages.success(request, 'Cập nhật trạng thái lịch khám thành công.')
             return redirect('doctor_appointments')
