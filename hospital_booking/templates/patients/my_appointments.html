@@ -2,15 +2,41 @@
 
 {% block title %}Lịch khám của tôi{% endblock %}
 
+{% block extra_css %}
+<style>
+    .confirmation-badge {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+    }
+    .status-badge-custom {
+        padding: 5px 12px;
+        border-radius: 15px;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-    <h2 class="mb-4">Lịch khám của tôi</h2>
+    <h2 class="mb-4"><i class="bi bi-calendar-check"></i> Lịch khám của tôi</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
     
     <!-- Filter -->
     <div class="card mb-4">
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label">Trạng thái</label>
                     <select name="status" class="form-select">
                         <option value="">Tất cả</option>
@@ -35,6 +61,7 @@
                     <table class="table table-hover">
                         <thead>
                             <tr>
+                                <th>Mã lịch</th>
                                 <th>Bác sĩ</th>
                                 <th>Chuyên khoa</th>
                                 <th>Ngày</th>
@@ -46,21 +73,61 @@
                         <tbody>
                             {% for apt in appointments %}
                                 <tr>
-                                    <td>{{ apt.doctor }}</td>
-                                    <td>{{ apt.doctor.specialization.name|default:"-" }}</td>
-                                    <td>{{ apt.appointment_date }}</td>
-                                    <td>{{ apt.appointment_time }}</td>
                                     <td>
-                                        <span class="badge bg-{% if apt.status == 'pending' %}warning{% elif apt.status == 'confirmed' %}success{% elif apt.status == 'completed' %}info{% elif apt.status == 'cancelled' %}danger{% else %}secondary{% endif %}">
-                                            {{ apt.get_status_display }}
-                                        </span>
+                                        {% if apt.confirmation %}
+                                            <span class="confirmation-badge" title="Mã xác nhận">
+                                                <i class="bi bi-qr-code"></i> {{ apt.confirmation.confirmation_code }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
                                     </td>
                                     <td>
-                                        {% if apt.status == 'pending' or apt.status == 'confirmed' %}
-                                            <a href="{% url 'cancel_appointment' apt.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Bạn có chắc muốn hủy lịch này?')">
-                                                <i class="bi bi-x-circle"></i> Hủy
-                                            </a>
+                                        <a href="{% url 'doctor_detail' apt.doctor.id %}">{{ apt.doctor }}</a>
+                                    </td>
+                                    <td>{{ apt.doctor.specialization.name|default:"-" }}</td>
+                                    <td>{{ apt.appointment_date|date:"d/m/Y" }}</td>
+                                    <td>{{ apt.appointment_time|time:"H:i" }}</td>
+                                    <td>
+                                        <span class="badge status-badge-custom bg-{% if apt.status == 'pending' %}warning text-dark{% elif apt.status == 'confirmed' %}success{% elif apt.status == 'completed' %}info{% elif apt.status == 'cancelled' %}danger{% elif apt.status == 'rejected' %}secondary{% endif %}">
+                                            {{ apt.get_status_display }}
+                                        </span>
+                                        {% if apt.checked_in %}
+                                            <span class="badge bg-success ms-1">
+                                                <i class="bi bi-check-circle"></i> Đã check-in
+                                            </span>
                                         {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if apt.status == 'pending' or apt.status == 'confirmed' %}
+                                                <a href="{% url 'reschedule_appointment' apt.id %}" class="btn btn-outline-warning" title="Đổi lịch">
+                                                    <i class="bi bi-arrow-repeat"></i>
+                                                </a>
+                                                <a href="{% url 'cancel_appointment' apt.id %}" class="btn btn-outline-danger" 
+                                                   onclick="return confirm('Bạn có chắc muốn hủy lịch này?')" title="Hủy lịch">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </a>
+                                            {% endif %}
+                                            
+                                            {% if apt.confirmation %}
+                                                <a href="{% url 'booking_confirmation' apt.confirmation.id %}" class="btn btn-outline-primary" title="Xem phiếu khám">
+                                                    <i class="bi bi-qr-code-scan"></i>
+                                                </a>
+                                            {% endif %}
+                                            
+                                            {% if apt.status == 'completed' and not apt.rating %}
+                                                <a href="{% url 'rate_doctor' apt.id %}" class="btn btn-outline-success" title="Đánh giá">
+                                                    <i class="bi bi-star"></i>
+                                                </a>
+                                            {% endif %}
+                                            
+                                            {% if apt.status == 'completed' %}
+                                                <a href="{% url 'view_medical_record' apt.id %}" class="btn btn-outline-info" title="Xem kết quả">
+                                                    <i class="bi bi-file-medical"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -68,13 +135,16 @@
                     </table>
                 </div>
             {% else %}
-                <p class="text-muted text-center mb-0">Không có lịch khám nào.</p>
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x display-1 text-muted"></i>
+                    <p class="text-muted mt-3">Không có lịch khám nào.</p>
+                </div>
             {% endif %}
         </div>
     </div>
     
     <div class="mt-4">
-        <a href="{% url 'book_appointment' %}" class="btn btn-primary">
+        <a href="{% url 'book_appointment' %}" class="btn btn-primary btn-lg">
             <i class="bi bi-calendar-plus"></i> Đặt lịch khám mới
         </a>
     </div>

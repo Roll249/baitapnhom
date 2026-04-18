@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+
+{% block title %}Kết quả khám bệnh{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'patient_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'my_appointments' %}">Lịch hẹn</a></li>
+            <li class="breadcrumb-item active">Kết quả khám</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-file-medical"></i> Kết quả khám bệnh</h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Appointment Info -->
+                    <div class="alert alert-light border mb-4">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Ngày khám:</strong> {{ appointment.appointment_date|date:"d/m/Y" }}</p>
+                                <p class="mb-1"><strong>Giờ khám:</strong> {{ appointment.appointment_time|time:"H:i" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Bác sĩ:</strong> {{ appointment.doctor }}</p>
+                                {% if appointment.doctor.specialization %}
+                                    <p class="mb-0"><strong>Chuyên khoa:</strong> {{ appointment.doctor.specialization.name }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Medical Info -->
+                    <h5 class="mb-3"><i class="bi bi-clipboard2-pulse text-primary"></i> Kết quả khám</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chẩn đoán:</label>
+                        <div class="p-3 bg-light rounded">
+                            {{ medical_record.diagnosis }}
+                        </div>
+                    </div>
+                    
+                    {% if medical_record.notes %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ghi chú:</label>
+                        <div class="p-3 bg-light rounded">
+                            {{ medical_record.notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if medical_record.treatment_plan %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kế hoạch điều trị:</label>
+                        <div class="p-3 bg-light rounded">
+                            {{ medical_record.treatment_plan }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if medical_record.follow_up_date %}
+                    <div class="alert alert-warning">
+                        <strong><i class="bi bi-calendar-plus"></i> Lịch tái khám:</strong><br>
+                        <span class="fs-5">{{ medical_record.follow_up_date|date:"d/m/Y" }}</span>
+                        {% if medical_record.follow_up_reason %}
+                            <br><small>{{ medical_record.follow_up_reason }}</small>
+                        {% endif %}
+                        <div class="mt-2">
+                            <a href="{% url 'book_appointment_doctor' appointment.doctor.id %}" class="btn btn-warning btn-sm">
+                                <i class="bi bi-calendar-plus"></i> Đặt lịch tái khám
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Prescriptions -->
+            {% if medical_record.prescriptions.all %}
+            <div class="card mt-4 shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-capsule"></i> Đơn thuốc</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Tên thuốc</th>
+                                    <th>Liều lượng</th>
+                                    <th>Tần suất</th>
+                                    <th>Thời gian</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for prescription in medical_record.prescriptions.all %}
+                                    <tr>
+                                        <td>{{ forloop.counter }}</td>
+                                        <td><strong>{{ prescription.medicine_name }}</strong></td>
+                                        <td>{{ prescription.dosage }}</td>
+                                        <td>{{ prescription.frequency }}</td>
+                                        <td>{{ prescription.duration }}</td>
+                                    </tr>
+                                    {% if prescription.instructions %}
+                                        <tr>
+                                            <td colspan="5" class="text-muted small">
+                                                <em>Hướng dẫn: {{ prescription.instructions }}</em>
+                                            </td>
+                                        </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Lưu ý:</strong> Hãy tuân thủ đúng đơn thuốc được kê. 
+                        Nếu có bất kỳ phản ứng phụ nào, hãy liên hệ bác sĩ ngay.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Thông tin</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Ngày khám:</strong> {{ appointment.appointment_date|date:"d/m/Y" }}
+                    </p>
+                    <p class="mb-2">
+                        <strong>Giờ khám:</strong> {{ appointment.appointment_time|time:"H:i" }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Bác sĩ:</strong> {{ appointment.doctor }}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h6><i class="bi bi-lightbulb text-warning"></i> Mẹo chăm sóc sức khỏe</h6>
+                    <ul class="small ps-3 mb-0">
+                        <li>Tuân thủ đơn thuốc đúng cách</li>
+                        <li>Nghỉ ngơi đầy đủ</li>
+                        <li>Ăn uống lành mạnh</li>
+                        <li>Tái khám đúng hẹn</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body">
+                    <a href="{% url 'my_appointments' %}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-arrow-left"></i> Quay lại lịch hẹn
+                    </a>
+                    <a href="{% url 'book_appointment_doctor' appointment.doctor.id %}" class="btn btn-primary w-100">
+                        <i class="bi bi-calendar-plus"></i> Đặt lịch mới
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

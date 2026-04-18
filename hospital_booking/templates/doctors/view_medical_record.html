@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block title %}Hồ sơ khám bệnh{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'doctor_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'doctor_appointments' %}">Lịch khám</a></li>
+            <li class="breadcrumb-item active">Hồ sơ khám bệnh</li>
+        </ol>
+    </nav>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-file-medical"></i> Hồ sơ khám bệnh</h4>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Patient Info -->
+                    <div class="alert alert-light border mb-4">
+                        <h5 class="alert-heading"><i class="bi bi-person"></i> Thông tin bệnh nhân</h5>
+                        <hr>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Tên:</strong> {{ medical_record.appointment.patient }}</p>
+                                <p class="mb-1"><strong>Ngày sinh:</strong> {{ medical_record.appointment.patient.date_of_birth|default:"Không có" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>Ngày khám:</strong> {{ medical_record.appointment.appointment_date }}</p>
+                                <p class="mb-1"><strong>Giờ khám:</strong> {{ medical_record.appointment.appointment_time }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Medical Info -->
+                    <h5 class="mb-3"><i class="bi bi-clipboard2-pulse"></i> Kết quả khám</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chẩn đoán:</label>
+                        <div class="p-3 bg-light rounded">
+                            {{ medical_record.diagnosis }}
+                        </div>
+                    </div>
+                    
+                    {% if medical_record.notes %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Ghi chú chuyên môn:</label>
+                        <div class="p-3 bg-light rounded">
+                            {{ medical_record.notes }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if medical_record.treatment_plan %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Kế hoạch điều trị:</label>
+                        <div class="p-3 bg-light rounded">
+                            {{ medical_record.treatment_plan }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if medical_record.follow_up_date %}
+                    <div class="alert alert-warning">
+                        <strong><i class="bi bi-calendar-plus"></i> Lịch tái khám:</strong> 
+                        {{ medical_record.follow_up_date|date:"d/m/Y" }}
+                        {% if medical_record.follow_up_reason %}
+                            - {{ medical_record.follow_up_reason }}
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Prescriptions -->
+            <div class="card mt-4 shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="bi bi-capsule"></i> Đơn thuốc</h4>
+                    <a href="{% url 'add_prescription' medical_record.id %}" class="btn btn-light btn-sm">
+                        <i class="bi bi-plus-circle"></i> Thêm thuốc
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if medical_record.prescriptions.all %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Tên thuốc</th>
+                                        <th>Liều lượng</th>
+                                        <th>Tần suất</th>
+                                        <th>Thời gian</th>
+                                        <th>Hướng dẫn</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for prescription in medical_record.prescriptions.all %}
+                                        <tr>
+                                            <td><strong>{{ prescription.medicine_name }}</strong></td>
+                                            <td>{{ prescription.dosage }}</td>
+                                            <td>{{ prescription.frequency }}</td>
+                                            <td>{{ prescription.duration }}</td>
+                                            <td>{{ prescription.instructions|default:"-" }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-prescription display-4 text-muted"></i>
+                            <p class="text-muted mt-2">Chưa có đơn thuốc nào</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Thông tin</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Ngày tạo:</strong> {{ medical_record.created_at|date:"d/m/Y H:i" }}
+                    </p>
+                    <p class="mb-0">
+                        <strong>Cập nhật:</strong> {{ medical_record.updated_at|date:"d/m/Y H:i" }}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="card mt-3">
+                <div class="card-body">
+                    <a href="{% url 'doctor_appointments' %}" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="bi bi-arrow-left"></i> Quay lại lịch khám
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

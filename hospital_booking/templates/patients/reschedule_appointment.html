@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Đổi lịch khám{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'patient_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'my_appointments' %}">Lịch hẹn</a></li>
+            <li class="breadcrumb-item active">Đổi lịch</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0"><i class="bi bi-arrow-repeat"></i> Đổi lịch khám</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Current Appointment Info -->
+                    <div class="alert alert-info mb-4">
+                        <h5><i class="bi bi-calendar-x"></i> Lịch khám hiện tại</h5>
+                        <hr>
+                        <p class="mb-1"><strong>Bác sĩ:</strong> {{ appointment.doctor }}</p>
+                        <p class="mb-1"><strong>Ngày:</strong> {{ appointment.appointment_date|date:"d/m/Y" }}</p>
+                        <p class="mb-1"><strong>Giờ:</strong> {{ appointment.appointment_time|time:"H:i" }}</p>
+                        <p class="mb-0"><strong>Trạng thái:</strong> {{ appointment.get_status_display }}</p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ngày khám mới *</label>
+                                <input type="date" name="new_date" class="form-control" required
+                                       value="{{ appointment.appointment_date|date:'Y-m-d' }}">
+                                <small class="text-muted">Chọn ngày bác sĩ làm việc</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Giờ khám mới *</label>
+                                <input type="time" name="new_time" class="form-control" required
+                                       value="{{ appointment.appointment_time|time:'H:i' }}">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Lý do đổi lịch (tùy chọn)</label>
+                            <textarea name="reason" class="form-control" rows="3" 
+                                      placeholder="VD: Có việc đột xuất, muốn đổi sang buổi chiều..."></textarea>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <strong>Lưu ý:</strong>
+                            <ul class="mb-0 ps-3">
+                                <li>Bạn chỉ có thể đổi lịch trước giờ hẹn ít nhất 2 tiếng</li>
+                                <li>Lịch khám mới phải nằm trong khung giờ làm việc của bác sĩ</li>
+                                <li>Bác sĩ sẽ được thông báo về việc đổi lịch</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="bi bi-check-lg"></i> Xác nhận đổi lịch
+                            </button>
+                            <a href="{% url 'my_appointments' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg"></i> Hủy
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

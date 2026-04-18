@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Check-in bệnh nhân{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0"><i class="bi bi-qr-code-scan"></i> Check-in bệnh nhân</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <p class="text-muted mb-4 text-center">
+                        Nhập mã xác nhận từ phiếu khám của bệnh nhân để check-in
+                    </p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label">Mã xác nhận</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-qr-code"></i></span>
+                                <input type="text" name="code" class="form-control form-control-lg text-center" 
+                                       placeholder="VD: BK12345678" required autofocus
+                                       style="text-transform: uppercase; letter-spacing: 2px;">
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-success btn-lg w-100">
+                            <i class="bi bi-check-circle"></i> Check-in
+                        </button>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <p class="text-muted small">Hoặc quét mã QR từ phiếu khám của bệnh nhân</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h6><i class="bi bi-info-circle"></i> Hướng dẫn</h6>
+                    <ol class="ps-3 small">
+                        <li>Bệnh nhân đến quầy lễ tân với phiếu khám điện tử</li>
+                        <li>Nhập mã xác nhận (VD: BK12345678)</li>
+                        <li>Nhấn "Check-in" để xác nhận</li>
+                        <li>Bệnh nhân được hướng dẫn đến phòng khám</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+
+{% block title %}Liên hệ & Hỗ trợ{% endblock %}
+
+{% block extra_css %}
+<style>
+    .contact-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 60px 0;
+        margin-bottom: 40px;
+    }
+    .faq-accordion .accordion-button {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        font-weight: 600;
+    }
+    .faq-accordion .accordion-button:not(.collapsed) {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .contact-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+    .info-card {
+        border-left: 4px solid #667eea;
+        transition: transform 0.2s;
+    }
+    .info-card:hover {
+        transform: translateX(5px);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="contact-hero">
+    <div class="container text-center">
+        <h1 class="display-4 mb-3"><i class="bi bi-headset"></i> Liên hệ & Hỗ trợ</h1>
+        <p class="lead">Chúng tôi luôn sẵn sàng hỗ trợ bạn 24/7</p>
+    </div>
+</section>
+
+<div class="container pb-5">
+    <div class="row">
+        <!-- Contact Form -->
+        <div class="col-lg-7 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-envelope"></i> Gửi yêu cầu hỗ trợ</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Họ và tên *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input type="text" name="name" class="form-control" required
+                                           placeholder="Nhập họ tên của bạn"
+                                           value="{{ request.user.get_full_name|default:'' }}">
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input type="email" name="email" class="form-control" required
+                                           placeholder="email@example.com"
+                                           value="{{ request.user.email|default:'' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Chủ đề *</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="bi bi-chat-left-text"></i></span>
+                                <select name="subject" class="form-select" required>
+                                    <option value="">-- Chọn chủ đề --</option>
+                                    <option value="Đặt lịch khám">Đặt lịch khám</option>
+                                    <option value="Thanh toán">Thanh toán</option>
+                                    <option value="Hủy lịch">Hủy lịch</option>
+                                    <option value="Khiếu nại">Khiếu nại</option>
+                                    <option value="Góp ý">Góp ý</option>
+                                    <option value="Khác">Khác</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Nội dung *</label>
+                            <textarea name="message" class="form-control" rows="5" required
+                                      placeholder="Mô tả chi tiết vấn đề của bạn..."></textarea>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-send"></i> Gửi yêu cầu
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contact Info -->
+        <div class="col-lg-5">
+            <!-- Hospital Info -->
+            <div class="card mb-4 info-card">
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="contact-icon me-3">
+                            <i class="bi bi-hospital"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1">Bệnh viện HealthCare</h5>
+                            <p class="text-muted mb-0">Hệ thống đặt lịch khám bệnh trực tuyến</p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <p class="mb-1"><i class="bi bi-geo-alt text-primary me-2"></i><strong>Địa chỉ:</strong></p>
+                        <p class="text-muted ms-4">Số 123, Đường Yên Hòa, Quận Cầu Giấy, Hà Nội</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="mb-1"><i class="bi bi-telephone text-primary me-2"></i><strong>Hotline:</strong></p>
+                        <p class="ms-4">
+                            <a href="tel:19001234" class="text-decoration-none">1900 1234</a>
+                            <span class="text-muted">(24/7)</span>
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="mb-1"><i class="bi bi-envelope text-primary me-2"></i><strong>Email:</strong></p>
+                        <p class="ms-4">
+                            <a href="mailto:support@healthcare.com" class="text-decoration-none">support@healthcare.com</a>
+                        </p>
+                    </div>
+                    
+                    <div class="mb-0">
+                        <p class="mb-1"><i class="bi bi-clock text-primary me-2"></i><strong>Giờ làm việc:</strong></p>
+                        <p class="text-muted ms-4">
+                            Thứ 2 - Thứ 6: 7:00 - 17:00<br>
+                            Thứ 7: 7:00 - 12:00<br>
+                            Chủ nhật: Nghỉ
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Support -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Hỗ trợ nhanh</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'doctor_list' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-search"></i> Tìm bác sĩ
+                        </a>
+                        <a href="{% url 'my_appointments' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-calendar-check"></i> Xem lịch hẹn
+                        </a>
+                        <a href="{% url 'payment_history' %}" class="btn btn-outline-primary">
+                            <i class="bi bi-receipt"></i> Lịch sử thanh toán
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Social Links -->
+            <div class="card">
+                <div class="card-body text-center">
+                    <h6 class="mb-3">Kết nối với chúng tôi</h6>
+                    <div class="d-flex justify-content-center gap-3">
+                        <a href="#" class="btn btn-outline-primary rounded-circle" style="width: 45px; height: 45px;">
+                            <i class="bi bi-facebook"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-danger rounded-circle" style="width: 45px; height: 45px;">
+                            <i class="bi bi-youtube"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-info rounded-circle" style="width: 45px; height: 45px;">
+                            <i class="bi bi-messenger"></i>
+                        </a>
+                        <a href="#" class="btn btn-outline-success rounded-circle" style="width: 45px; height: 45px;">
+                            <i class="bi bi-whatsapp"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FAQ Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4 text-center"><i class="bi bi-question-circle text-primary"></i> Câu hỏi thường gặp (FAQ)</h3>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="accordion faq-accordion" id="faqAccordion">
+                <!-- FAQ Item 1 -->
+                <div class="accordion-item mb-2 border rounded">
+                    <h2 class="accordion-header" id="headingOne">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            <i class="bi bi-calendar-plus me-2"></i> Làm sao để đặt lịch khám?
+                        </button>
+                    </h2>
+                    <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Để đặt lịch khám, bạn cần đăng nhập vào hệ thống, chọn bác sĩ theo chuyên khoa, 
+                            chọn ngày và khung giờ phù hợp. Sau khi đặt thành công, bạn sẽ nhận được email xác nhận 
+                            kèm theo mã lịch khám.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 2 -->
+                <div class="accordion-item mb-2 border rounded">
+                    <h2 class="accordion-header" id="headingTwo">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            <i class="bi bi-x-circle me-2"></i> Tôi có thể hủy lịch không?
+                        </button>
+                    </h2>
+                    <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Có, bạn có thể hủy lịch khám trước giờ hẹn ít nhất 2 tiếng. 
+                            Để hủy lịch, vào mục "Lịch hẹn của tôi" và chọn "Hủy lịch". 
+                            Lưu ý: Nếu bạn đã thanh toán, vui lòng liên hệ hotline để được hoàn tiền.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 3 -->
+                <div class="accordion-item mb-2 border rounded">
+                    <h2 class="accordion-header" id="headingThree">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                            <i class="bi bi-arrow-repeat me-2"></i> Làm sao để đổi lịch khám?
+                        </button>
+                    </h2>
+                    <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Bạn có thể đổi lịch khám trước giờ hẹn ít nhất 2 tiếng. 
+                            Vào mục "Lịch hẹn của tôi", chọn lịch cần đổi và nhấn "Đổi lịch". 
+                            Sau đó chọn ngày và giờ mới phù hợp với bạn.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 4 -->
+                <div class="accordion-item mb-2 border rounded">
+                    <h2 class="accordion-header" id="headingFour">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour">
+                            <i class="bi bi-credit-card me-2"></i> Tôi có thể thanh toán bằng cách nào?
+                        </button>
+                    </h2>
+                    <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Hiện tại chúng tôi hỗ trợ thanh toán qua <strong>SePay QR</strong> (chuyển khoản ngân hàng) 
+                            và <strong>VNPay</strong> (thẻ ATM, Visa, Mastercard). Bạn có thể thanh toán ngay sau khi đặt lịch 
+                            hoặc thanh toán trực tiếp tại quầy.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 5 -->
+                <div class="accordion-item mb-2 border rounded">
+                    <h2 class="accordion-header" id="headingFive">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive">
+                            <i class="bi bi-qr-code me-2"></i> Tôi cần làm gì khi đến bệnh viện?
+                        </button>
+                    </h2>
+                    <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Khi đến bệnh viện, bạn có thể:<br>
+                            1. Quét mã QR trên phiếu khám điện tử đã được gửi qua email<br>
+                            2. Hoặc đọc mã xác nhận cho nhân viên tại quầy lễ tân<br>
+                            3. Vui lòng đến trước 15 phút để làm thủ tục
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 6 -->
+                <div class="accordion-item mb-2 border rounded">
+                    <h2 class="accordion-header" id="headingSix">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix">
+                            <i class="bi bi-clock-history me-2"></i> Tôi nhận được nhắc nhở lịch khám không?
+                        </button>
+                    </h2>
+                    <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Có, hệ thống sẽ tự động gửi email nhắc nhở trước 24 giờ và trước 2 giờ 
+                            so với giờ hẹn của bạn. Đảm bảo email của bạn được cập nhật để nhận được thông báo.
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 7 -->
+                <div class="accordion-item mb-2 border rounded">
+                    <h2 class="accordion-header" id="headingSeven">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven">
+                            <i class="bi bi-file-medical me-2"></i> Làm sao xem kết quả khám?
+                        </button>
+                    </h2>
+                    <div id="collapseSeven" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Sau khi bác sĩ hoàn tất việc khám và nhập kết quả, bạn sẽ nhận được email 
+                            thông báo kèm file PDF chứa phiếu khám và đơn thuốc (nếu có). 
+                            Bạn cũng có thể xem trực tiếp trên hệ thống tại mục "Lịch sử khám bệnh".
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- FAQ Item 8 -->
+                <div class="accordion-item border rounded">
+                    <h2 class="accordion-header" id="headingEight">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight">
+                            <i class="bi bi-star me-2"></i> Tôi có thể đánh giá bác sĩ không?
+                        </button>
+                    </h2>
+                    <div id="collapseEight" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Có, sau khi lịch khám được đánh dấu là "Hoàn thành", bạn có thể đánh giá 
+                            bác sĩ từ 1-5 sao và viết nhận xét. Đánh giá của bạn giúp cải thiện chất lượng 
+                            dịch vụ và giúp những bệnh nhân khác có thêm thông tin tham khảo.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

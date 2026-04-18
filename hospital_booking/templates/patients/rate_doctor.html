@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block title %}Đánh giá bác sĩ{% endblock %}
+
+{% block extra_css %}
+<style>
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+        gap: 10px;
+    }
+    .star-rating input {
+        display: none;
+    }
+    .star-rating label {
+        font-size: 40px;
+        color: #e0e0e0;
+        cursor: pointer;
+        transition: color 0.2s, transform 0.2s;
+    }
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-rating input:checked ~ label {
+        color: #ffc107;
+    }
+    .star-rating label:hover {
+        transform: scale(1.2);
+    }
+    .doctor-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 15px;
+        padding: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'patient_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'my_appointments' %}">Lịch hẹn</a></li>
+            <li class="breadcrumb-item active">Đánh giá</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-star"></i> Đánh giá bác sĩ</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Doctor Info -->
+                    <div class="doctor-card mb-4 text-center">
+                        <i class="bi bi-person-circle display-1 text-primary mb-3"></i>
+                        <h4>{{ appointment.doctor }}</h4>
+                        {% if appointment.doctor.specialization %}
+                            <p class="text-muted mb-1">{{ appointment.doctor.specialization.name }}</p>
+                        {% endif %}
+                        <p class="text-muted mb-0">
+                            Lịch khám: {{ appointment.appointment_date|date:"d/m/Y" }} lúc {{ appointment.appointment_time|time:"H:i" }}
+                        </p>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Star Rating -->
+                        <div class="mb-4 text-center">
+                            <label class="form-label d-block"><strong>Điểm đánh giá của bạn</strong></label>
+                            <div class="star-rating">
+                                <input type="radio" id="star5" name="rating" value="5" required>
+                                <label for="star5" title="5 sao"><i class="bi bi-star-fill"></i></label>
+                                
+                                <input type="radio" id="star4" name="rating" value="4">
+                                <label for="star4" title="4 sao"><i class="bi bi-star-fill"></i></label>
+                                
+                                <input type="radio" id="star3" name="rating" value="3">
+                                <label for="star3" title="3 sao"><i class="bi bi-star-fill"></i></label>
+                                
+                                <input type="radio" id="star2" name="rating" value="2">
+                                <label for="star2" title="2 sao"><i class="bi bi-star-fill"></i></label>
+                                
+                                <input type="radio" id="star1" name="rating" value="1">
+                                <label for="star1" title="1 sao"><i class="bi bi-star-fill"></i></label>
+                            </div>
+                            <div id="rating-text" class="mt-2 text-muted">Chọn điểm đánh giá</div>
+                        </div>
+                        
+                        <!-- Comment -->
+                        <div class="mb-4">
+                            <label class="form-label"><strong>Nhận xét của bạn</strong> (tùy chọn)</label>
+                            <textarea name="comment" class="form-control" rows="4" 
+                                      placeholder="Chia sẻ trải nghiệm của bạn với bác sĩ này..."></textarea>
+                            <small class="text-muted">Nhận xét của bạn sẽ giúp những bệnh nhân khác có thêm thông tin tham khảo</small>
+                        </div>
+                        
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send"></i> Gửi đánh giá
+                            </button>
+                            <a href="{% url 'my_appointments' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg"></i> Hủy
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Info Card -->
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5><i class="bi bi-info-circle text-primary"></i> Tại sao đánh giá quan trọng?</h5>
+                    <ul class="mb-0">
+                        <li>Giúp cải thiện chất lượng dịch vụ y tế</li>
+                        <li>Hỗ trợ những bệnh nhân khác trong việc lựa chọn bác sĩ</li>
+                        <li>Đóng góp vào sự phát triển của cộng đồng y tế</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ratingTexts = {
+        1: 'Rất không hài lòng',
+        2: 'Không hài lòng',
+        3: 'Bình thường',
+        4: 'Hài lòng',
+        5: 'Rất hài lòng'
+    };
+    
+    const inputs = document.querySelectorAll('.star-rating input');
+    const textEl = document.getElementById('rating-text');
+    
+    inputs.forEach(input => {
+        input.addEventListener('change', function() {
+            const rating = parseInt(this.value);
+            textEl.textContent = ratingTexts[rating];
+            textEl.className = 'mt-2 text-success fw-bold';
+        });
+    });
+});
+</script>
+{% endblock %}

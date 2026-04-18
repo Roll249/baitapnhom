@@ -2,6 +2,8 @@ from django.db import models
 from django.core.exceptions import ValidationError
 from patients.models import Patient
 from doctors.models import Doctor
+import uuid
+import json
 
 
 class Appointment(models.Model):
@@ -21,6 +23,8 @@ class Appointment(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     symptoms = models.TextField(blank=True, help_text='Mô tả triệu chứng')
     notes = models.TextField(blank=True, help_text='Ghi chú của bác sĩ')
+    checked_in = models.BooleanField(default=False, help_text='Đã check-in khi đến khám')
+    checked_in_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -69,6 +73,117 @@ class Appointment(models.Model):
         verbose_name = 'Lịch khám'
         verbose_name_plural = 'Lịch khám'
         ordering = ['-appointment_date', '-appointment_time']
+
+
+class BookingConfirmation(models.Model):
+    """Electronic booking ticket with QR code"""
+    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='confirmation')
+    confirmation_code = models.CharField(max_length=20, unique=True, help_text='Mã xác nhận')
+    qr_data = models.TextField(blank=True, help_text='Dữ liệu cho QR code (JSON)')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Mã xác nhận: {self.confirmation_code}"
+    
+    def save(self, *args, **kwargs):
+        if not self.confirmation_code:
+            self.confirmation_code = f"BK{uuid.uuid4().hex[:8].upper()}"
+        if not self.qr_data:
+            self.generate_qr_data()
+        super().save(*args, **kwargs)
+    
+    def generate_qr_data(self):
+        """Generate QR code data as JSON"""
+        data = {
+            'code': self.confirmation_code,
+            'patient': str(self.appointment.patient),
+            'doctor': str(self.appointment.doctor),
+            'specialization': self.appointment.doctor.specialization.name if self.appointment.doctor.specialization else '',
+            'date': str(self.appointment.appointment_date),
+            'time': str(self.appointment.appointment_time),
+            'clinic': self.appointment.doctor.clinic_name,
+            'clinic_address': self.appointment.doctor.clinic_address,
+        }
+        self.qr_data = json.dumps(data, ensure_ascii=False)
+    
+    class Meta:
+        verbose_name = 'Phiếu khám'
+        verbose_name_plural = 'Phiếu khám'
+
+
+class WaitingList(models.Model):
+    """Waiting list for when appointments are full"""
+    STATUS_CHOICES = [
+        ('waiting', 'Đang chờ'),
+        ('notified', 'Đã thông báo'),
+        ('booked', 'Đã đặt'),
+        ('expired', 'Hết hạn'),
+    ]
+    
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name='waiting_list')
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name='waiting_list')
+    preferred_date = models.DateField(help_text='Ngày mong muốn')
+    preferred_time_slots = models.JSONField(
+        default=list, 
+        blank=True,
+        help_text='Danh sách khung giờ mong muốn, ví dụ: ["08:00", "09:00"]'
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting')
+    created_at = models.DateTimeField(auto_now_add=True)
+    notified_at = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True, help_text='Ghi chú của bệnh nhân')
+    
+    def __str__(self):
+        return f"{self.patient} - {self.doctor} ({self.preferred_date})"
+    
+    class Meta:
+        verbose_name = 'Danh sách chờ'
+        verbose_name_plural = 'Danh sách chờ'
+        ordering = ['-created_at']
+
+
+class MedicalRecord(models.Model):
+    """Medical record for completed appointments"""
+    appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name='medical_record')
+    diagnosis = models.TextField(help_text='Chẩn đoán')
+    notes = models.TextField(blank=True, help_text='Ghi chú chuyên môn')
+    treatment_plan = models.TextField(blank=True, help_text='Kế hoạch điều trị')
+    follow_up_date = models.DateField(null=True, blank=True, help_text='Ngày tái khám')
+    follow_up_reason = models.TextField(blank=True, help_text='Lý do tái khám')
+    attachments = models.FileField(
+        upload_to='medical_records/', 
+        blank=True,
+        help_text='File đính kèm (kết quả xét nghiệm, ảnh...)'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"Hồ sơ khám: {self.appointment}"
+    
+    class Meta:
+        verbose_name = 'Hồ sơ khám bệnh'
+        verbose_name_plural = 'Hồ sơ khám bệnh'
+        ordering = ['-created_at']
+
+
+class Prescription(models.Model):
+    """Prescription for medications"""
+    medical_record = models.ForeignKey(MedicalRecord, on_delete=models.CASCADE, related_name='prescriptions')
+    medicine_name = models.CharField(max_length=200, help_text='Tên thuốc')
+    dosage = models.CharField(max_length=100, help_text='Liều lượng (VD: 1 viên/lần)')
+    frequency = models.CharField(max_length=100, help_text='Tần suất (VD: 3 lần/ngày)')
+    duration = models.CharField(max_length=100, help_text='Thời gian (VD: 7 ngày)')
+    instructions = models.TextField(blank=True, help_text='Hướng dẫn sử dụng')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.medicine_name} - {self.medical_record}"
+    
+    class Meta:
+        verbose_name = 'Đơn thuốc'
+        verbose_name_plural = 'Đơn thuốc'
+        ordering = ['created_at']
 
 
 class Billing(models.Model):

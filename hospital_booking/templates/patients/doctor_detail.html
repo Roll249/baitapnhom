@@ -2,69 +2,223 @@
 
 {% block title %}{{ doctor }} - Chi tiết bác sĩ{% endblock %}
 
+{% block extra_css %}
+<style>
+    .clinic-card {
+        border-left: 4px solid #28a745;
+        background: linear-gradient(135deg, #f8fff8 0%, #ffffff 100%);
+    }
+    .rating-section {
+        background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+        border: 1px solid #ffc107;
+    }
+    .stars {
+        color: #ffc107;
+    }
+    .stars-empty {
+        color: #e0e0e0;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'patient_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'doctor_list' %}">Bác sĩ</a></li>
+            <li class="breadcrumb-item active">Dr. {{ doctor.user.get_full_name }}</li>
+        </ol>
+    </nav>
+    
     <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">{{ doctor }}</h4>
+        <!-- Doctor Info -->
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="bi bi-person-badge"></i> Thông tin bác sĩ</h4>
+                    <span class="badge {% if doctor.status == 'available' %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ doctor.get_status_display }}
+                    </span>
                 </div>
                 <div class="card-body">
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <h6><i class="bi bi-heart-pulse"></i> Chuyên khoa</h6>
-                            <p>{{ doctor.specialization.name|default:"Chưa cập nhật" }}</p>
+                            <h6><i class="bi bi-heart-pulse text-primary"></i> Chuyên khoa</h6>
+                            <p class="ms-4">{{ doctor.specialization.name|default:"Chưa cập nhật" }}</p>
                         </div>
                         <div class="col-md-6">
-                            <h6><i class="bi bi-award"></i> Học vị/Chức danh</h6>
-                            <p>{{ doctor.qualification|default:"Chưa cập nhật" }}</p>
+                            <h6><i class="bi bi-award text-primary"></i> Học vị/Chức danh</h6>
+                            <p class="ms-4">{{ doctor.qualification|default:"Chưa cập nhật" }}</p>
                         </div>
                     </div>
                     
                     <div class="row mb-4">
                         <div class="col-md-6">
-                            <h6><i class="bi bi-briefcase"></i> Kinh nghiệm</h6>
-                            <p>{{ doctor.experience_years }} năm</p>
+                            <h6><i class="bi bi-briefcase text-primary"></i> Kinh nghiệm</h6>
+                            <p class="ms-4">{{ doctor.experience_years }} năm</p>
                         </div>
                         <div class="col-md-6">
-                            <h6><i class="bi bi-cash"></i> Phí khám</h6>
-                            <p>{{ doctor.consultation_fee|floatformat:0 }} VNĐ</p>
+                            <h6><i class="bi bi-cash text-primary"></i> Phí khám</h6>
+                            <p class="ms-4 fw-bold text-success">{{ doctor.consultation_fee|floatformat:0 }} VNĐ</p>
                         </div>
                     </div>
                     
                     {% if doctor.bio %}
                         <div class="mb-4">
-                            <h6><i class="bi bi-info-circle"></i> Giới thiệu</h6>
-                            <p>{{ doctor.bio }}</p>
+                            <h6><i class="bi bi-info-circle text-primary"></i> Giới thiệu</h6>
+                            <p class="ms-4">{{ doctor.bio }}</p>
                         </div>
                     {% endif %}
                     
-                    <a href="{% url 'book_appointment_doctor' doctor.id %}" class="btn btn-primary btn-lg">
-                        <i class="bi bi-calendar-plus"></i> Đặt lịch khám
-                    </a>
+                    <!-- Rating Section -->
+                    {% if doctor.total_ratings > 0 %}
+                        <div class="rating-section p-3 rounded mb-4">
+                            <h6><i class="bi bi-star-fill text-warning"></i> Đánh giá</h6>
+                            <div class="d-flex align-items-center">
+                                <div class="me-3">
+                                    <span class="display-4 fw-bold text-warning">{{ doctor.average_rating|floatformat:1 }}</span>
+                                    <span class="text-muted">/ 5</span>
+                                </div>
+                                <div>
+                                    <div class="stars">
+                                        {% with ''|center:5 as range %}
+                                            {% for _ in range %}
+                                                {% if forloop.counter <= doctor.average_rating %}
+                                                    <i class="bi bi-star-fill"></i>
+                                                {% else %}
+                                                    <i class="bi bi-star stars-empty"></i>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endwith %}
+                                    </div>
+                                    <small class="text-muted">{{ doctor.total_ratings }} đánh giá</small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2 d-md-block">
+                        <a href="{% url 'book_appointment_doctor' doctor.id %}" class="btn btn-primary btn-lg me-md-2">
+                            <i class="bi bi-calendar-plus"></i> Đặt lịch khám
+                        </a>
+                        <a href="{% url 'doctor_list' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-arrow-left"></i> Quay lại
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Working Schedule -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-calendar-week"></i> Lịch làm việc</h5>
+                </div>
+                <div class="card-body">
+                    {% if schedules %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Ngày</th>
+                                        <th>Giờ làm việc</th>
+                                        <th>Số bệnh nhân tối đa</th>
+                                        <th>Thời gian nghỉ</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for schedule in schedules %}
+                                        <tr>
+                                            <td><strong>{{ schedule.get_weekday_display }}</strong></td>
+                                            <td>{{ schedule.start_time }} - {{ schedule.end_time }}</td>
+                                            <td>{{ schedule.max_patients }} bệnh nhân</td>
+                                            <td>{{ schedule.buffer_minutes }} phút</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0 text-center">Bác sĩ chưa cập nhật lịch làm việc.</p>
+                    {% endif %}
                 </div>
             </div>
         </div>
         
-        <div class="col-md-4">
-            <div class="card">
+        <!-- Sidebar - Clinic Info -->
+        <div class="col-lg-4">
+            <!-- Clinic Info Card -->
+            {% if doctor.clinic_name or doctor.clinic_address %}
+                <div class="card mb-4 clinic-card">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="bi bi-hospital"></i> Thông tin phòng khám</h5>
+                    </div>
+                    <div class="card-body">
+                        {% if doctor.clinic_name %}
+                            <h6 class="text-success">{{ doctor.clinic_name }}</h6>
+                        {% endif %}
+                        
+                        {% if doctor.clinic_address %}
+                            <p class="mb-2">
+                                <i class="bi bi-geo-alt text-success"></i>
+                                <strong>Địa chỉ:</strong><br>
+                                <span class="ms-3">{{ doctor.clinic_address }}</span>
+                            </p>
+                        {% endif %}
+                        
+                        {% if doctor.clinic_phone %}
+                            <p class="mb-2">
+                                <i class="bi bi-telephone text-success"></i>
+                                <strong>Hotline:</strong>
+                                <a href="tel:{{ doctor.clinic_phone }}" class="text-decoration-none">
+                                    {{ doctor.clinic_phone }}
+                                </a>
+                            </p>
+                        {% endif %}
+                        
+                        {% if doctor.clinic_map_url %}
+                            <div class="mt-3">
+                                <a href="{{ doctor.clinic_map_url }}" target="_blank" class="btn btn-success btn-sm">
+                                    <i class="bi bi-box-arrow-up-right"></i> Xem bản đồ
+                                </a>
+                            </div>
+                            {% if 'iframe' in doctor.clinic_map_url %}
+                                <div class="mt-3">
+                                    {{ doctor.clinic_map_url|safe }}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Quick Info Card -->
+            <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0"><i class="bi bi-calendar"></i> Lịch làm việc</h5>
+                    <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Lưu ý khi đặt lịch</h5>
                 </div>
                 <div class="card-body">
-                    {% if schedules %}
-                        <ul class="list-group list-group-flush">
-                            {% for schedule in schedules %}
-                                <li class="list-group-item d-flex justify-content-between">
-                                    <span>{{ schedule.get_weekday_display }}</span>
-                                    <span class="text-muted">{{ schedule.start_time }} - {{ schedule.end_time }}</span>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-muted mb-0">Chưa có lịch làm việc.</p>
-                    {% endif %}
+                    <ul class="mb-0 ps-3">
+                        <li class="mb-2">Vui lòng đến trước <strong>15 phút</strong> để làm thủ tục</li>
+                        <li class="mb-2">Mang theo <strong>CMND/CCCD</strong> và <strong>BHYT</strong> (nếu có)</li>
+                        <li class="mb-2">Có thể <strong>hủy lịch</strong> hoặc <strong>đổi lịch</strong> trước giờ khám</li>
+                        <li class="mb-2">Sau khi đặt, bạn sẽ nhận <strong>mã xác nhận</strong> qua email</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Contact Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-headset"></i> Hỗ trợ</h5>
+                </div>
+                <div class="card-body text-center">
+                    <p class="text-muted">Cần hỗ trợ?</p>
+                    <a href="{% url 'contact' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-chat-dots"></i> Liên hệ hỗ trợ
+                    </a>
                 </div>
             </div>
         </div>

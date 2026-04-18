@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
 from .forms import PatientRegistrationForm, UserLoginForm, UserProfileForm, PatientProfileForm
 from patients.models import Patient
 
@@ -9,6 +11,41 @@ from patients.models import Patient
 def home(request):
     """Home page view"""
     return render(request, 'home.html')
+
+
+def contact(request):
+    """Contact and FAQ page"""
+    from django.views.decorators.http import require_http_methods
+    
+    if request.method == 'POST':
+        name = request.POST.get('name', '')
+        email = request.POST.get('email', '')
+        subject = request.POST.get('subject', '')
+        message = request.POST.get('message', '')
+        
+        if name and email and subject and message:
+            try:
+                # Send email to admin
+                send_mail(
+                    subject=f"[Liên hệ] {subject} - từ {name}",
+                    message=f"""
+Người gửi: {name}
+Email: {email}
+
+Nội dung:
+{message}
+                    """,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[settings.EMAIL_HOST_USER or 'admin@hospital.com'],
+                    fail_silently=True
+                )
+                messages.success(request, 'Cảm ơn bạn đã liên hệ! Chúng tôi sẽ phản hồi sớm nhất có thể.')
+            except Exception as e:
+                messages.error(request, 'Có lỗi xảy ra khi gửi email. Vui lòng thử lại.')
+        else:
+            messages.error(request, 'Vui lòng điền đầy đủ thông tin.')
+    
+    return render(request, 'contact.html')
 
 
 def register(request):

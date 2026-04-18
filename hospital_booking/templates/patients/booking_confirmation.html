@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+
+{% block title %}Phiếu khám - {{ confirmation.confirmation_code }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ticket-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    }
+    .ticket-header {
+        background: rgba(255,255,255,0.2);
+        padding: 20px;
+        text-align: center;
+        color: white;
+    }
+    .ticket-body {
+        background: white;
+        padding: 30px;
+    }
+    .confirmation-code {
+        font-size: 28px;
+        font-weight: bold;
+        letter-spacing: 3px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .qr-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 15px;
+        text-align: center;
+    }
+    .qr-placeholder {
+        width: 200px;
+        height: 200px;
+        background: white;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        border: 2px dashed #dee2e6;
+    }
+    .info-row {
+        display: flex;
+        border-bottom: 1px solid #eee;
+        padding: 12px 0;
+    }
+    .info-label {
+        width: 140px;
+        font-weight: 600;
+        color: #6c757d;
+    }
+    .info-value {
+        flex: 1;
+        color: #212529;
+    }
+    .status-badge {
+        padding: 8px 20px;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+    .status-confirmed {
+        background: #d4edda;
+        color: #155724;
+    }
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .ticket-card {
+            box-shadow: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-3 no-print">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'patient_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'my_appointments' %}">Lịch hẹn</a></li>
+            <li class="breadcrumb-item active">Phiếu khám</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="ticket-card">
+                <!-- Header -->
+                <div class="ticket-header">
+                    <h2><i class="bi bi-qr-code-scan"></i> PHIẾU KHÁM ĐIỆN TỬ</h2>
+                    <p class="mb-0">Vui lòng mang phiếu này khi đến khám</p>
+                </div>
+                
+                <!-- Body -->
+                <div class="ticket-body">
+                    <!-- Confirmation Code -->
+                    <div class="text-center mb-4">
+                        <p class="text-muted mb-1">Mã xác nhận</p>
+                        <p class="confirmation-code mb-0">{{ confirmation.confirmation_code }}</p>
+                    </div>
+                    
+                    <!-- QR Code Section -->
+                    <div class="qr-section mb-4">
+                        <p class="mb-3"><strong>Quét mã QR để check-in</strong></p>
+                        <div class="qr-placeholder" id="qr-code">
+                            <div>
+                                <i class="bi bi-qr-code display-1 text-secondary"></i>
+                                <p class="small text-muted mt-2 mb-0">QR Code</p>
+                            </div>
+                        </div>
+                        <!-- QR Code will be generated here -->
+                        <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const qrData = {{ confirmation.qr_data|safe }};
+                                const qrElement = document.getElementById('qr-code');
+                                if (typeof QRCode !== 'undefined' && qrData) {
+                                    qrElement.innerHTML = '';
+                                    QRCode.toCanvas(JSON.stringify(qrData), {
+                                        width: 180,
+                                        margin: 2
+                                    }, function(error, canvas) {
+                                        if (error) {
+                                            console.error(error);
+                                            return;
+                                        }
+                                        canvas.style.borderRadius = '10px';
+                                        qrElement.appendChild(canvas);
+                                    });
+                                }
+                            });
+                        </script>
+                    </div>
+                    
+                    <!-- Appointment Info -->
+                    <div class="mb-4">
+                        <div class="info-row">
+                            <span class="info-label">Trạng thái</span>
+                            <span class="info-value">
+                                <span class="status-badge status-{{ confirmation.appointment.status }}">
+                                    {{ confirmation.appointment.get_status_display }}
+                                </span>
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Ngày khám</span>
+                            <span class="info-value">{{ confirmation.appointment.appointment_date|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Giờ khám</span>
+                            <span class="info-value">{{ confirmation.appointment.appointment_time|time:"H:i" }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Bác sĩ</span>
+                            <span class="info-value">{{ confirmation.appointment.doctor }}</span>
+                        </div>
+                        {% if confirmation.appointment.doctor.specialization %}
+                        <div class="info-row">
+                            <span class="info-label">Chuyên khoa</span>
+                            <span class="info-value">{{ confirmation.appointment.doctor.specialization.name }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Patient Info -->
+                    <h6 class="text-muted mb-3"><i class="bi bi-person"></i> Thông tin bệnh nhân</h6>
+                    <div class="mb-4">
+                        <div class="info-row">
+                            <span class="info-label">Họ tên</span>
+                            <span class="info-value">{{ confirmation.appointment.patient }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email</span>
+                            <span class="info-value">{{ confirmation.appointment.patient.user.email|default:"Không có" }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Điện thoại</span>
+                            <span class="info-value">{{ confirmation.appointment.patient.user.phone|default:"Không có" }}</span>
+                        </div>
+                        {% if confirmation.appointment.symptoms %}
+                        <div class="info-row">
+                            <span class="info-label">Triệu chứng</span>
+                            <span class="info-value">{{ confirmation.appointment.symptoms }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Clinic Info -->
+                    {% if confirmation.appointment.doctor.clinic_name or confirmation.appointment.doctor.clinic_address %}
+                    <h6 class="text-muted mb-3"><i class="bi bi-hospital"></i> Địa điểm khám</h6>
+                    <div class="mb-4">
+                        {% if confirmation.appointment.doctor.clinic_name %}
+                        <div class="info-row">
+                            <span class="info-label">Phòng khám</span>
+                            <span class="info-value">{{ confirmation.appointment.doctor.clinic_name }}</span>
+                        </div>
+                        {% endif %}
+                        {% if confirmation.appointment.doctor.clinic_address %}
+                        <div class="info-row">
+                            <span class="info-label">Địa chỉ</span>
+                            <span class="info-value">{{ confirmation.appointment.doctor.clinic_address }}</span>
+                        </div>
+                        {% endif %}
+                        {% if confirmation.appointment.doctor.clinic_phone %}
+                        <div class="info-row">
+                            <span class="info-label">Hotline</span>
+                            <span class="info-value">{{ confirmation.appointment.doctor.clinic_phone }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Notes -->
+                    <div class="alert alert-info mb-4">
+                        <h6 class="alert-heading"><i class="bi bi-info-circle"></i> Lưu ý</h6>
+                        <ul class="mb-0 ps-3">
+                            <li>Vui lòng đến trước <strong>15 phút</strong> để làm thủ tục</li>
+                            <li>Mang theo <strong>CMND/CCCD</strong> và <strong>BHYT</strong> (nếu có)</li>
+                            <li>Quét mã QR hoặc đọc mã xác nhận cho nhân viên tại quầy lễ tân</li>
+                        </ul>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="d-flex justify-content-center gap-3 no-print">
+                        <button onclick="window.print()" class="btn btn-outline-secondary">
+                            <i class="bi bi-printer"></i> In phiếu
+                        </button>
+                        <a href="{% url 'my_appointments' %}" class="btn btn-primary">
+                            <i class="bi bi-list"></i> Xem lịch hẹn
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Check-in Info -->
+            <div class="card mt-4">
+                <div class="card-body text-center">
+                    <h5><i class="bi bi-qr-code-scan text-primary"></i> Hướng dẫn check-in</h5>
+                    <p class="text-muted">Khi đến bệnh viện, bạn có thể check-in bằng một trong các cách:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded">
+                                <i class="bi bi-qr-code-scan display-5 text-primary mb-2"></i>
+                                <p class="mb-0"><strong>Quét mã QR</strong><br><small>trên phiếu này</small></p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 border rounded">
+                                <i class="bi bi-keyboard display-5 text-primary mb-2"></i>
+                                <p class="mb-0"><strong>Nhập mã xác nhận</strong><br><small>{{ confirmation.confirmation_code }}</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

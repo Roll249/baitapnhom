@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block title %}Kê đơn thuốc{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'doctor_dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_medical_record_doctor' medical_record.id %}">Hồ sơ khám</a></li>
+            <li class="breadcrumb-item active">Thêm đơn thuốc</li>
+        </ol>
+    </nav>
+    
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-capsule"></i> Kê đơn thuốc</h4>
+                </div>
+                <div class="card-body p-4">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Patient Info -->
+                    <div class="alert alert-info mb-4">
+                        <strong>Bệnh nhân:</strong> {{ medical_record.appointment.patient }}
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Tên thuốc *</strong></label>
+                            <input type="text" name="medicine_name" class="form-control" required
+                                   placeholder="VD: Paracetamol 500mg">
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><strong>Liều lượng *</strong></label>
+                                <input type="text" name="dosage" class="form-control" required
+                                       placeholder="VD: 1 viên/lần">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label"><strong>Tần suất *</strong></label>
+                                <input type="text" name="frequency" class="form-control" required
+                                       placeholder="VD: 3 lần/ngày">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Thời gian sử dụng</strong></label>
+                            <input type="text" name="duration" class="form-control"
+                                   placeholder="VD: 7 ngày">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Hướng dẫn sử dụng</strong></label>
+                            <textarea name="instructions" class="form-control" rows="3"
+                                      placeholder="VD: Uống sau khi ăn, không uống khi đói..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex gap-3">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Lưu đơn thuốc
+                            </button>
+                            <a href="{% url 'view_medical_record_doctor' medical_record.id %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg"></i> Hủy
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
