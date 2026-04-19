@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.core.exceptions import ValidationError
 from patients.models import Patient
 from doctors.models import Doctor
@@ -43,6 +44,7 @@ class Appointment(models.Model):
             doctor=self.doctor,
             appointment_date=self.appointment_date,
             appointment_time=self.appointment_time,
+            status__in=['pending', 'confirmed'],
         ).exclude(pk=self.pk)
         
         if overlapping.exists():
@@ -73,6 +75,13 @@ class Appointment(models.Model):
         verbose_name = 'Lịch khám'
         verbose_name_plural = 'Lịch khám'
         ordering = ['-appointment_date', '-appointment_time']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['doctor', 'appointment_date', 'appointment_time'],
+                condition=Q(status__in=['pending', 'confirmed']),
+                name='uniq_active_appointment_slot',
+            )
+        ]
 
 
 class BookingConfirmation(models.Model):

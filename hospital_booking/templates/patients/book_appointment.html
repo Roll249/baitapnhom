@@ -166,7 +166,7 @@
                                 </div>
                             </div>
                             
-                            <button type="button" class="btn btn-primary" onclick="goToStep(2)">
+                            <button type="button" class="btn btn-primary" onclick="goToNextFromStep1()">
                                 Tiếp tục <i class="bi bi-arrow-right"></i>
                             </button>
                         </div>
@@ -175,15 +175,30 @@
                         <div id="step2" class="form-step" style="display: none;">
                             <h5 class="mb-4"><i class="bi bi-search"></i> Chọn bác sĩ</h5>
                             
-                            <!-- Specialization Filter -->
-                            <div class="mb-3">
-                                <label class="form-label">Lọc theo chuyên khoa</label>
-                                <select class="form-select" id="specFilter" onchange="filterDoctors()">
-                                    <option value="">Tất cả chuyên khoa</option>
-                                    {% for spec in specializations %}
-                                        <option value="{{ spec.id }}">{{ spec.name }}</option>
-                                    {% endfor %}
-                                </select>
+                            <div class="row g-3 mb-3">
+                                <!-- Search by name (copied from Doctor List page) -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Tìm theo tên</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-person-search"></i></span>
+                                        <input type="text" name="q" class="form-control" 
+                                               id="doctorSearch"
+                                               placeholder="Nhập tên bác sĩ..." 
+                                                 oninput="filterDoctors()"
+                                                 onkeydown="if(event.key === 'Enter'){ event.preventDefault(); }">
+                                    </div>
+                                </div>
+
+                                <!-- Specialization Filter -->
+                                <div class="col-md-6">
+                                    <label class="form-label">Lọc theo chuyên khoa</label>
+                                    <select class="form-select" id="specFilter" onchange="filterDoctors()">
+                                        <option value="">Tất cả chuyên khoa</option>
+                                        {% for spec in specializations %}
+                                            <option value="{{ spec.id }}">{{ spec.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             </div>
                             
                             <!-- Hidden doctor selection -->
@@ -193,7 +208,7 @@
                             <div class="row" id="doctorList">
                                 {% for doctor in doctors %}
                                     <div class="col-md-6 doctor-item" data-spec="{{ doctor.specialization.id|default:'' }}">
-                                        <div class="doctor-card-mini" onclick="selectDoctor({{ doctor.id }}, '{{ doctor }}', {{ doctor.consultation_fee }})">
+                                        <div class="doctor-card-mini" data-doctor-id="{{ doctor.id }}" onclick="selectDoctor({{ doctor.id }}, '{{ doctor|escapejs }}', {{ doctor.consultation_fee }}, this)">
                                             <div class="d-flex justify-content-between align-items-start">
                                                 <div>
                                                     <h6 class="mb-1">{{ doctor.user.get_full_name }}</h6>
@@ -251,9 +266,8 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Giờ khám *</label>
-                                    <select name="appointment_time" id="appointmentTime" class="form-select" required disabled>
-                                        <option value="">-- Chọn ngày trước --</option>
-                                    </select>
+                                    <input type="hidden" name="appointment_time" id="appointmentTime" required>
+                                    <div id="timeSlotContainer" class="row"></div>
                                     <small class="text-muted" id="timeHint"></small>
                                 </div>
                             </div>
@@ -313,11 +327,13 @@
 </div>
 
 <script>
+const availableSlotsUrl = "{% url 'available_time_slots' %}";
+
 const doctors = [
     {% for doctor in doctors %}
         {
             id: {{ doctor.id }},
-            name: "{{ doctor }}",
+            name: "{{ doctor|escapejs }}",
             fee: {{ doctor.consultation_fee|default:0 }},
             specialization: "{{ doctor.specialization.name|default:'' }}",
             schedules: [
@@ -330,6 +346,16 @@ const doctors = [
 ];
 
 let selectedDoctorId = null;
+let selectedAppointmentTime = '';
+
+function goToNextFromStep1() {
+    // If doctor already selected (e.g., coming from doctor list), skip step 2
+    if (selectedDoctorId) {
+        goToStep(3);
+        return;
+    }
+    goToStep(2);
+}
 
 function goToStep(step) {
     // Validate current step before moving
@@ -367,16 +393,15 @@ function goToStep(step) {
 
 function filterDoctors() {
     const specId = document.getElementById('specFilter').value;
+    const q = (document.getElementById('doctorSearch')?.value || '').trim().toLowerCase();
     document.querySelectorAll('.doctor-item').forEach(item => {
-        if (!specId || item.dataset.spec === specId) {
-            item.style.display = '';
-        } else {
-            item.style.display = 'none';
-        }
+        const matchesSpec = !specId || item.dataset.spec === specId;
+        const matchesQuery = !q || (item.textContent || '').toLowerCase().includes(q);
+        item.style.display = (matchesSpec && matchesQuery) ? '' : 'none';
     });
 }
 
-function selectDoctor(id, name, fee) {
+function selectDoctor(id, name, fee, el) {
     selectedDoctorId = id;
     document.getElementById('selectedDoctor').value = id;
     
@@ -384,13 +409,22 @@ function selectDoctor(id, name, fee) {
     document.querySelectorAll('.doctor-card-mini').forEach(card => {
         card.classList.remove('selected');
     });
-    event.currentTarget.classList.add('selected');
+    const target = el || (typeof event !== 'undefined' ? event.currentTarget : null);
+    if (target) target.classList.add('selected');
     
     // Update info
     document.getElementById('doctorName').textContent = name;
     document.getElementById('doctorFee').textContent = fee.toLocaleString() + ' VNĐ';
     document.getElementById('selectedDoctorInfo').style.display = 'block';
     document.getElementById('nextToStep3').disabled = false;
+
+    // Reset date/time selection when switching doctor
+    selectedAppointmentTime = '';
+    document.getElementById('appointmentTime').value = '';
+    document.getElementById('appointmentDate').value = '';
+    document.getElementById('timeSlotContainer').innerHTML = '';
+    document.getElementById('timeHint').textContent = '';
+    document.getElementById('submitBtn').disabled = true;
     
     updateSummary();
 }
@@ -430,71 +464,108 @@ function updateSummary() {
     document.getElementById('summaryContent').innerHTML = html;
 }
 
-// Handle date change - load available time slots
+function clearTimeSlots(message) {
+    selectedAppointmentTime = '';
+    document.getElementById('appointmentTime').value = '';
+    document.getElementById('timeSlotContainer').innerHTML = '';
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('timeHint').textContent = message || '';
+    updateSummary();
+}
+
+function selectTimeSlot(timeStr) {
+    selectedAppointmentTime = timeStr;
+    document.getElementById('appointmentTime').value = timeStr;
+    document.querySelectorAll('#timeSlotContainer .time-slot').forEach(el => {
+        el.classList.toggle('selected', el.dataset.time === timeStr);
+    });
+    document.getElementById('submitBtn').disabled = !timeStr;
+    updateSummary();
+}
+
+async function loadTimeSlotsForDate(date) {
+    if (!date || !selectedDoctorId) return;
+
+    clearTimeSlots('Đang tải khung giờ...');
+
+    try {
+        const url = `${availableSlotsUrl}?doctor_id=${encodeURIComponent(selectedDoctorId)}&date=${encodeURIComponent(date)}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const data = await res.json();
+
+        if (!res.ok || !data.ok) {
+            clearTimeSlots('Không thể tải khung giờ. Vui lòng thử lại.');
+            return;
+        }
+
+        if (!data.day_available) {
+            clearTimeSlots(data.day_reason || 'Bác sĩ không khả dụng vào ngày này.');
+            return;
+        }
+
+        const container = document.getElementById('timeSlotContainer');
+        container.innerHTML = '';
+
+        if (!data.slots || data.slots.length === 0) {
+            clearTimeSlots('Không có khung giờ phù hợp.');
+            return;
+        }
+
+        data.slots.forEach(slot => {
+            const col = document.createElement('div');
+            col.className = 'col-4';
+
+            const el = document.createElement('div');
+            el.className = `time-slot${slot.available ? '' : ' disabled'}`;
+            el.textContent = slot.time;
+            el.dataset.time = slot.time;
+
+            const reason = slot.reason || (slot.available ? '' : 'Không khả dụng');
+            if (!slot.available) {
+                el.title = reason;
+            }
+
+            el.addEventListener('click', function() {
+                if (!slot.available) {
+                    alert(reason);
+                    return;
+                }
+                selectTimeSlot(slot.time);
+            });
+
+            col.appendChild(el);
+            container.appendChild(col);
+        });
+
+        document.getElementById('timeHint').textContent = `Giờ làm việc: ${data.meta.start} - ${data.meta.end}`;
+        updateSummary();
+    } catch (e) {
+        clearTimeSlots('Không thể tải khung giờ.');
+    }
+}
+
+// Handle date change - load available time slots from backend
 document.getElementById('appointmentDate').addEventListener('change', function() {
     const date = this.value;
     if (!date || !selectedDoctorId) return;
-    
-    const dateObj = new Date(date);
-    const weekday = dateObj.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const djangoWeekday = weekday === 0 ? 6 : weekday - 1; // Convert to Django format (0 = Monday)
-    
-    const doctor = doctors.find(d => d.id === selectedDoctorId);
-    if (!doctor) return;
-    
-    const schedule = doctor.schedules.find(s => s.weekday === djangoWeekday);
-    const timeSelect = document.getElementById('appointmentTime');
-    
-    if (!schedule) {
-        timeSelect.innerHTML = '<option value="">Bác sĩ không làm việc vào ngày này</option>';
-        timeSelect.disabled = true;
-        document.getElementById('timeHint').textContent = 'Vui lòng chọn ngày khác';
-        return;
-    }
-    
-    // Generate time slots (every hour from start to end)
-    const [startHour, startMin] = schedule.start.split(':').map(Number);
-    const [endHour, endMin] = schedule.end.split(':').map(Number);
-    
-    let slots = [];
-    let currentHour = startHour;
-    let currentMin = startMin;
-    
-    while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
-        const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
-        slots.push({ time: timeStr, available: true }); // In real app, check against booked slots
-        
-        currentMin += 60; // Next hour
-        if (currentMin >= 60) {
-            currentHour += 1;
-            currentMin = 0;
-        }
-    }
-    
-    timeSelect.innerHTML = '<option value="">-- Chọn giờ khám --</option>';
-    slots.forEach(slot => {
-        const disabled = slot.available ? '' : 'disabled class="disabled"';
-        const label = slot.available ? '' : ' (Đã đặt)';
-        timeSelect.innerHTML += `<option value="${slot.time}" ${disabled}>${slot.time}${label}</option>`;
-    });
-    
-    timeSelect.disabled = false;
-    document.getElementById('timeHint').textContent = `Giờ làm việc: ${schedule.start} - ${schedule.end}`;
-    
-    updateSummary();
-});
-
-// Handle time change
-document.getElementById('appointmentTime').addEventListener('change', function() {
-    const submitBtn = document.getElementById('submitBtn');
-    submitBtn.disabled = !this.value;
-    updateSummary();
+    loadTimeSlotsForDate(date);
 });
 
 // Set minimum date to today
 document.addEventListener('DOMContentLoaded', function() {
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('appointmentDate').min = today;
+
+    // Auto-select doctor when coming from doctor list (/patient/book/<doctor_id>/)
+    const preselectedDoctorId = (document.getElementById('selectedDoctor')?.value || '').trim();
+    if (preselectedDoctorId) {
+        const idNum = parseInt(preselectedDoctorId, 10);
+        const doctor = doctors.find(d => d.id === idNum);
+        const card = document.querySelector(`.doctor-card-mini[data-doctor-id="${idNum}"]`);
+        if (doctor) {
+            selectDoctor(doctor.id, doctor.name, doctor.fee, card);
+        }
+    }
 });
 </script>
 {% endblock %}

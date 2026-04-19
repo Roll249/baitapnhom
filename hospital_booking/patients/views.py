@@ -2,13 +2,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
+from datetime import date as date_type
+from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from doctors.models import Doctor, Specialization
 from appointments.models import Appointment, BookingConfirmation, WaitingList
 from appointments.forms import AppointmentForm
 from notifications.services import notify_appointment_created, notify_appointment_cancelled
+from notifications.services import send_email_notification
 
 
 def patient_required(view_func):
@@ -115,19 +119,44 @@ def book_appointment(request, doctor_id=None):
     if request.method == 'POST':
         form = AppointmentForm(request.POST)
         if form.is_valid():
-            appointment = form.save(commit=False)
-            appointment.patient = patient
-            appointment.status = 'pending'
-            appointment.save()
-            
-            # Create booking confirmation with QR code
-            confirmation = BookingConfirmation.objects.create(appointment=appointment)
-            
-            # Send notification to doctor
-            notify_appointment_created(appointment)
-            
-            messages.success(request, f'Đặt lịch khám thành công! Mã xác nhận: {confirmation.confirmation_code}')
-            return redirect('booking_confirmation', confirmation_id=confirmation.id)
+            try:
+                with transaction.atomic():
+                    appointment = form.save(commit=False)
+                    appointment.patient = patient
+                    appointment.status = 'pending'
+                    appointment.save()
+
+                    # Create booking confirmation with QR code
+                    confirmation = BookingConfirmation.objects.create(appointment=appointment)
+
+                # Send notification to doctor
+                notify_appointment_created(appointment)
+
+                # Send booking confirmation email to patient (best-effort)
+                send_email_notification(
+                    appointment.patient.user,
+                    'Xác nhận đặt lịch khám',
+                    'notifications/email/booking_confirmation_patient.html',
+                    {'appointment': appointment, 'confirmation': confirmation}
+                )
+
+                messages.success(
+                    request,
+                    'Đăng ký lịch khám thành công, thông tin chi tiết sẽ được gửi qua email'
+                )
+                return redirect('booking_confirmation', confirmation_id=confirmation.id)
+            except ValidationError as e:
+                messages.error(request, str(e))
+            except IntegrityError:
+                messages.error(
+                    request,
+                    'Khung giờ này vừa được đặt bởi người khác. Vui lòng chọn khung giờ khác.'
+                )
+        else:
+            # Surface form errors through messages since the template is custom
+            for field_errors in form.errors.values():
+                for err in field_errors:
+                    messages.error(request, err)
     else:
         form = AppointmentForm(initial=initial)
     
@@ -143,6 +172,111 @@ def book_appointment(request, doctor_id=None):
         'today': timezone.now().date(),
     }
     return render(request, 'patients/book_appointment.html', context)
+
+
+@login_required
+@patient_required
+def available_time_slots(request):
+    """Return available time slots for a doctor on a given date.
+
+    Query params:
+      - doctor_id: int
+      - date: YYYY-MM-DD
+
+    Response:
+      {"ok": bool, "day_available": bool, "day_reason": str|None, "slots": [{"time": "HH:MM", "available": bool, "reason": str|None}], "meta": {...}}
+    """
+    doctor_id = request.GET.get('doctor_id')
+    date_str = request.GET.get('date')
+
+    if not doctor_id or not date_str:
+        return JsonResponse(
+            {"ok": False, "error": "Missing doctor_id or date"},
+            status=400
+        )
+
+    try:
+        doctor = Doctor.objects.prefetch_related('schedules').get(id=int(doctor_id))
+    except (Doctor.DoesNotExist, ValueError):
+        return JsonResponse({"ok": False, "error": "Invalid doctor_id"}, status=404)
+
+    try:
+        selected_date = date_type.fromisoformat(date_str)
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "Invalid date"}, status=400)
+
+    if doctor.status == 'off':
+        return JsonResponse({
+            "ok": True,
+            "day_available": False,
+            "day_reason": "Bác sĩ đang nghỉ phép, không thể đặt lịch.",
+            "slots": [],
+            "meta": {"doctor_id": doctor.id, "date": date_str},
+        })
+
+    weekday = selected_date.weekday()  # 0=Mon
+    schedule = doctor.schedules.filter(weekday=weekday, is_active=True).first()
+    if not schedule:
+        return JsonResponse({
+            "ok": True,
+            "day_available": False,
+            "day_reason": "Bác sĩ không làm việc vào ngày này.",
+            "slots": [],
+            "meta": {"doctor_id": doctor.id, "date": date_str, "weekday": weekday},
+        })
+
+    active_appointments = Appointment.objects.filter(
+        doctor=doctor,
+        appointment_date=selected_date,
+        status__in=['pending', 'confirmed']
+    )
+
+    if schedule.max_patients and active_appointments.count() >= schedule.max_patients:
+        return JsonResponse({
+            "ok": True,
+            "day_available": False,
+            "day_reason": f"Bác sĩ đã đạt số lượng bệnh nhân tối đa ({schedule.max_patients}) trong ngày này.",
+            "slots": [],
+            "meta": {
+                "doctor_id": doctor.id,
+                "date": date_str,
+                "weekday": weekday,
+                "start": schedule.start_time.strftime('%H:%M'),
+                "end": schedule.end_time.strftime('%H:%M'),
+            },
+        })
+
+    booked_times = set(
+        active_appointments.values_list('appointment_time', flat=True)
+    )
+
+    # Build slots every 60 minutes in the doctor's working window
+    slots = []
+    start_dt = datetime.combine(selected_date, schedule.start_time)
+    end_dt = datetime.combine(selected_date, schedule.end_time)
+    cur = start_dt
+    while cur < end_dt:
+        time_str = cur.strftime('%H:%M')
+        time_val = cur.time()
+        if time_val in booked_times:
+            slots.append({"time": time_str, "available": False, "reason": "Đã có người đặt"})
+        else:
+            slots.append({"time": time_str, "available": True, "reason": None})
+        cur += timedelta(minutes=60)
+
+    return JsonResponse({
+        "ok": True,
+        "day_available": True,
+        "day_reason": None,
+        "slots": slots,
+        "meta": {
+            "doctor_id": doctor.id,
+            "date": date_str,
+            "weekday": weekday,
+            "start": schedule.start_time.strftime('%H:%M'),
+            "end": schedule.end_time.strftime('%H:%M'),
+        },
+    })
 
 
 @login_required
