@@ -2,50 +2,499 @@
 
 {% block title %}Đặt lịch khám{% endblock %}
 
+{% block extra_css %}
+<style>
+    .booking-card {
+        border-top: 4px solid #667eea;
+    }
+    .doctor-card-mini {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    .doctor-card-mini.selected {
+        border: 2px solid #667eea;
+        background: linear-gradient(135deg, #e8eaff 0%, #f0f4ff 100%);
+    }
+    .time-slot {
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 2px solid #dee2e6;
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+        margin-bottom: 8px;
+    }
+    .time-slot:hover:not(.disabled) {
+        border-color: #667eea;
+        background: #f0f4ff;
+    }
+    .time-slot.selected {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    .time-slot.disabled {
+        background: #e9ecef;
+        color: #adb5bd;
+        cursor: not-allowed;
+    }
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 30px;
+    }
+    .step {
+        display: flex;
+        align-items: center;
+    }
+    .step-circle {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        background: #dee2e6;
+        color: #6c757d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+    .step.active .step-circle {
+        background: #667eea;
+        color: white;
+    }
+    .step.completed .step-circle {
+        background: #28a745;
+        color: white;
+    }
+    .step-line {
+        width: 60px;
+        height: 3px;
+        background: #dee2e6;
+        margin: 0 10px;
+    }
+    .step.completed + .step-line {
+        background: #28a745;
+    }
+    .calendar-input {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Đặt lịch khám</h4>
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active" id="step1-indicator">
+            <div class="step-circle">1</div>
+            <span class="ms-2">Thông tin</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step2-indicator">
+            <div class="step-circle">2</div>
+            <span class="ms-2">Bác sĩ</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step" id="step3-indicator">
+            <div class="step-circle">3</div>
+            <span class="ms-2">Lịch hẹn</span>
+        </div>
+    </div>
+    
+    <form method="post" id="bookingForm">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Main Form -->
+            <div class="col-lg-8">
+                <div class="card booking-card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0"><i class="bi bi-calendar-plus"></i> Đặt lịch khám</h4>
+                    </div>
+                    <div class="card-body p-4">
+                        
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <!-- Step 1: Patient Info -->
+                        <div id="step1" class="form-step">
+                            <h5 class="mb-4"><i class="bi bi-person"></i> Thông tin bệnh nhân</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Họ và tên *</label>
+                                    <input type="text" name="patient_name" class="form-control" required
+                                           placeholder="Nhập họ tên đầy đủ"
+                                           value="{{ request.user.get_full_name|default:'' }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Số điện thoại *</label>
+                                    <input type="tel" name="patient_phone" class="form-control" required
+                                           placeholder="0901234567"
+                                           value="{{ request.user.phone|default:'' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <input type="email" name="patient_email" class="form-control"
+                                           placeholder="email@example.com"
+                                           value="{{ request.user.email|default:'' }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Ngày sinh</label>
+                                    <input type="date" name="patient_dob" class="form-control"
+                                           value="{{ request.user.patient_profile.date_of_birth|date:'Y-m-d'|default:'' }}">
+                                </div>
+                                <div class="col-md-3 mb-3">
+                                    <label class="form-label">Giới tính</label>
+                                    <select name="patient_gender" class="form-select">
+                                        <option value="">-- Chọn --</option>
+                                        <option value="M" {% if request.user.patient_profile.gender == 'M' %}selected{% endif %}>Nam</option>
+                                        <option value="F" {% if request.user.patient_profile.gender == 'F' %}selected{% endif %}>Nữ</option>
+                                        <option value="O">Khác</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <button type="button" class="btn btn-primary" onclick="goToStep(2)">
+                                Tiếp tục <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- Step 2: Select Doctor -->
+                        <div id="step2" class="form-step" style="display: none;">
+                            <h5 class="mb-4"><i class="bi bi-search"></i> Chọn bác sĩ</h5>
+                            
+                            <!-- Specialization Filter -->
+                            <div class="mb-3">
+                                <label class="form-label">Lọc theo chuyên khoa</label>
+                                <select class="form-select" id="specFilter" onchange="filterDoctors()">
+                                    <option value="">Tất cả chuyên khoa</option>
+                                    {% for spec in specializations %}
+                                        <option value="{{ spec.id }}">{{ spec.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <!-- Hidden doctor selection -->
+                            <input type="hidden" name="doctor" id="selectedDoctor" value="{{ form.doctor.value|default:'' }}">
+                            
+                            <!-- Doctor List -->
+                            <div class="row" id="doctorList">
+                                {% for doctor in doctors %}
+                                    <div class="col-md-6 doctor-item" data-spec="{{ doctor.specialization.id|default:'' }}">
+                                        <div class="doctor-card-mini" onclick="selectDoctor({{ doctor.id }}, '{{ doctor }}', {{ doctor.consultation_fee }})">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <h6 class="mb-1">{{ doctor.user.get_full_name }}</h6>
+                                                    <small class="text-muted">{{ doctor.specialization.name|default:"Chưa cập nhật" }}</small>
+                                                    <div class="mt-1">
+                                                        <span class="badge bg-info">{{ doctor.experience_years }} năm kinh nghiệm</span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-end">
+                                                    <div class="text-success fw-bold">{{ doctor.consultation_fee|floatformat:0 }} VNĐ</div>
+                                                    <small class="text-muted">/ lần khám</small>
+                                                </div>
+                                            </div>
+                                            <div class="mt-2">
+                                                {% if doctor.clinic_name %}
+                                                    <small><i class="bi bi-hospital"></i> {{ doctor.clinic_name }}</small>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <div class="col-12">
+                                        <div class="alert alert-info">Không có bác sĩ nào khả dụng.</div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-secondary" onclick="goToStep(1)">
+                                    <i class="bi bi-arrow-left"></i> Quay lại
+                                </button>
+                                <button type="button" class="btn btn-primary" onclick="goToStep(3)" id="nextToStep3" disabled>
+                                    Tiếp tục <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Date & Time -->
+                        <div id="step3" class="form-step" style="display: none;">
+                            <h5 class="mb-4"><i class="bi bi-calendar-week"></i> Chọn ngày và giờ khám</h5>
+                            
+                            <!-- Selected Doctor Info -->
+                            <div class="alert alert-info mb-4" id="selectedDoctorInfo" style="display: none;">
+                                <strong>Bác sĩ đã chọn:</strong> <span id="doctorName"></span>
+                                <br><strong>Phí khám:</strong> <span id="doctorFee"></span>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày khám *</label>
+                                    <input type="date" name="appointment_date" id="appointmentDate" 
+                                           class="form-control calendar-input" required
+                                           min="{{ today|date:'Y-m-d' }}">
+                                    <small class="text-muted">Chọn ngày trong tuần (Thứ 2 - Thứ 6)</small>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giờ khám *</label>
+                                    <select name="appointment_time" id="appointmentTime" class="form-select" required disabled>
+                                        <option value="">-- Chọn ngày trước --</option>
+                                    </select>
+                                    <small class="text-muted" id="timeHint"></small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Mô tả triệu chứng *</label>
+                                <textarea name="symptoms" class="form-control" rows="4" required
+                                          placeholder="Mô tả triệu chứng của bạn một cách chi tiết nhất có thể để bác sĩ có thể chuẩn bị tốt nhất cho buổi khám..."></textarea>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between">
+                                <button type="button" class="btn btn-outline-secondary" onclick="goToStep(2)">
+                                    <i class="bi bi-arrow-left"></i> Quay lại
+                                </button>
+                                <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                                    <i class="bi bi-check-lg"></i> Xác nhận đặt lịch
+                                </button>
+                            </div>
+                        </div>
+                        
+                    </div>
                 </div>
-                <div class="card-body p-4">
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Chọn bác sĩ *</label>
-                            {{ form.doctor }}
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Booking Summary -->
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="bi bi-receipt"></i> Tóm tắt đặt lịch</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="summaryContent">
+                            <p class="text-muted text-center">Điền thông tin để xem tóm tắt</p>
                         </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Ngày khám *</label>
-                                {{ form.appointment_date }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Giờ khám *</label>
-                                {{ form.appointment_time }}
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Mô tả triệu chứng</label>
-                            {{ form.symptoms }}
-                            <small class="text-muted">Mô tả ngắn gọn triệu chứng để bác sĩ chuẩn bị tốt hơn.</small>
-                        </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-check-lg"></i> Đặt lịch
-                        </button>
-                        <a href="{% url 'patient_dashboard' %}" class="btn btn-outline-secondary btn-lg">
-                            Hủy
-                        </a>
-                    </form>
+                    </div>
+                </div>
+                
+                <!-- Guidelines -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Hướng dẫn</h5>
+                    </div>
+                    <div class="card-body">
+                        <ol class="ps-3 small">
+                            <li class="mb-2">Điền đầy đủ thông tin bệnh nhân</li>
+                            <li class="mb-2">Chọn bác sĩ phù hợp với tình trạng</li>
+                            <li class="mb-2">Chọn ngày giờ thuận tiện</li>
+                            <li class="mb-2">Mô tả triệu chứng chi tiết</li>
+                            <li class="mb-0">Sau khi đặt, bạn sẽ nhận <strong>mã xác nhận</strong> qua email</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    </form>
 </div>
+
+<script>
+const doctors = [
+    {% for doctor in doctors %}
+        {
+            id: {{ doctor.id }},
+            name: "{{ doctor }}",
+            fee: {{ doctor.consultation_fee|default:0 }},
+            specialization: "{{ doctor.specialization.name|default:'' }}",
+            schedules: [
+                {% for schedule in doctor.schedules.all %}
+                    { weekday: {{ schedule.weekday }}, start: "{{ schedule.start_time }}", end: "{{ schedule.end_time }}" },
+                {% endfor %}
+            ]
+        },
+    {% endfor %}
+];
+
+let selectedDoctorId = null;
+
+function goToStep(step) {
+    // Validate current step before moving
+    if (step > 1) {
+        const name = document.querySelector('input[name="patient_name"]').value;
+        const phone = document.querySelector('input[name="patient_phone"]').value;
+        if (!name || !phone) {
+            alert('Vui lòng điền đầy đủ thông tin bệnh nhân (họ tên và số điện thoại)');
+            return;
+        }
+    }
+    
+    if (step > 2 && !selectedDoctorId) {
+        alert('Vui lòng chọn bác sĩ');
+        return;
+    }
+    
+    // Hide all steps
+    document.querySelectorAll('.form-step').forEach(el => el.style.display = 'none');
+    
+    // Show target step
+    document.getElementById(`step${step}`).style.display = 'block';
+    
+    // Update indicators
+    for (let i = 1; i <= 3; i++) {
+        const indicator = document.getElementById(`step${i}-indicator`);
+        indicator.classList.remove('active', 'completed');
+        if (i < step) indicator.classList.add('completed');
+        if (i === step) indicator.classList.add('active');
+    }
+    
+    // Update summary
+    updateSummary();
+}
+
+function filterDoctors() {
+    const specId = document.getElementById('specFilter').value;
+    document.querySelectorAll('.doctor-item').forEach(item => {
+        if (!specId || item.dataset.spec === specId) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function selectDoctor(id, name, fee) {
+    selectedDoctorId = id;
+    document.getElementById('selectedDoctor').value = id;
+    
+    // Update UI
+    document.querySelectorAll('.doctor-card-mini').forEach(card => {
+        card.classList.remove('selected');
+    });
+    event.currentTarget.classList.add('selected');
+    
+    // Update info
+    document.getElementById('doctorName').textContent = name;
+    document.getElementById('doctorFee').textContent = fee.toLocaleString() + ' VNĐ';
+    document.getElementById('selectedDoctorInfo').style.display = 'block';
+    document.getElementById('nextToStep3').disabled = false;
+    
+    updateSummary();
+}
+
+function updateSummary() {
+    const name = document.querySelector('input[name="patient_name"]')?.value || '';
+    const phone = document.querySelector('input[name="patient_phone"]')?.value || '';
+    const date = document.getElementById('appointmentDate')?.value || '';
+    const time = document.getElementById('appointmentTime')?.value || '';
+    
+    let html = '<ul class="list-unstyled">';
+    
+    if (name || phone) {
+        html += `<li><strong>Bệnh nhân:</strong> ${name || '...'}</li>`;
+        html += `<li><strong>Điện thoại:</strong> ${phone || '...'}</li>`;
+    }
+    
+    if (selectedDoctorId) {
+        const doctor = doctors.find(d => d.id === selectedDoctorId);
+        if (doctor) {
+            html += `<li><strong>Bác sĩ:</strong> ${doctor.name}</li>`;
+            html += `<li><strong>Phí khám:</strong> ${doctor.fee.toLocaleString()} VNĐ</li>`;
+        }
+    }
+    
+    if (date) {
+        const dateObj = new Date(date);
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        html += `<li><strong>Ngày khám:</strong> ${dateObj.toLocaleDateString('vi-VN', options)}</li>`;
+    }
+    
+    if (time) {
+        html += `<li><strong>Giờ khám:</strong> ${time}</li>`;
+    }
+    
+    html += '</ul>';
+    document.getElementById('summaryContent').innerHTML = html;
+}
+
+// Handle date change - load available time slots
+document.getElementById('appointmentDate').addEventListener('change', function() {
+    const date = this.value;
+    if (!date || !selectedDoctorId) return;
+    
+    const dateObj = new Date(date);
+    const weekday = dateObj.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const djangoWeekday = weekday === 0 ? 6 : weekday - 1; // Convert to Django format (0 = Monday)
+    
+    const doctor = doctors.find(d => d.id === selectedDoctorId);
+    if (!doctor) return;
+    
+    const schedule = doctor.schedules.find(s => s.weekday === djangoWeekday);
+    const timeSelect = document.getElementById('appointmentTime');
+    
+    if (!schedule) {
+        timeSelect.innerHTML = '<option value="">Bác sĩ không làm việc vào ngày này</option>';
+        timeSelect.disabled = true;
+        document.getElementById('timeHint').textContent = 'Vui lòng chọn ngày khác';
+        return;
+    }
+    
+    // Generate time slots (every hour from start to end)
+    const [startHour, startMin] = schedule.start.split(':').map(Number);
+    const [endHour, endMin] = schedule.end.split(':').map(Number);
+    
+    let slots = [];
+    let currentHour = startHour;
+    let currentMin = startMin;
+    
+    while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+        const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
+        slots.push({ time: timeStr, available: true }); // In real app, check against booked slots
+        
+        currentMin += 60; // Next hour
+        if (currentMin >= 60) {
+            currentHour += 1;
+            currentMin = 0;
+        }
+    }
+    
+    timeSelect.innerHTML = '<option value="">-- Chọn giờ khám --</option>';
+    slots.forEach(slot => {
+        const disabled = slot.available ? '' : 'disabled class="disabled"';
+        const label = slot.available ? '' : ' (Đã đặt)';
+        timeSelect.innerHTML += `<option value="${slot.time}" ${disabled}>${slot.time}${label}</option>`;
+    });
+    
+    timeSelect.disabled = false;
+    document.getElementById('timeHint').textContent = `Giờ làm việc: ${schedule.start} - ${schedule.end}`;
+    
+    updateSummary();
+});
+
+// Handle time change
+document.getElementById('appointmentTime').addEventListener('change', function() {
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = !this.value;
+    updateSummary();
+});
+
+// Set minimum date to today
+document.addEventListener('DOMContentLoaded', function() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('appointmentDate').min = today;
+});
+</script>
 {% endblock %}

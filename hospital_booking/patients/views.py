@@ -103,6 +103,8 @@ def doctor_detail(request, doctor_id):
 @patient_required
 def book_appointment(request, doctor_id=None):
     """Book an appointment"""
+    from django.utils import timezone
+    
     patient = request.user.patient_profile
     initial = {}
     
@@ -129,9 +131,16 @@ def book_appointment(request, doctor_id=None):
     else:
         form = AppointmentForm(initial=initial)
     
+    # Get all available doctors with their schedules
+    doctors = Doctor.objects.filter(status='available').prefetch_related('schedules', 'specialization')
+    specializations = Specialization.objects.all()
+    
     context = {
         'form': form,
         'doctor_id': doctor_id,
+        'doctors': doctors,
+        'specializations': specializations,
+        'today': timezone.now().date(),
     }
     return render(request, 'patients/book_appointment.html', context)
 
